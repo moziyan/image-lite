@@ -4,6 +4,7 @@ import { useMessage } from 'naive-ui'
 import AppHeader from '@/components/common/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ImageQueuePanel from '@/components/image/ImageQueuePanel.vue'
+import BatchSummaryBar from '@/components/result/BatchSummaryBar.vue'
 import CompressionSummary from '@/components/result/CompressionSummary.vue'
 import SettingsPanel from '@/components/settings/SettingsPanel.vue'
 import { useImageQueueStore } from '@/stores/imageQueue'
@@ -27,9 +28,15 @@ async function onProcessAll(): Promise<void> {
     resize: { ...settings.resize },
     output: { ...settings.output },
   })
-  const failed = queue.items.filter((item) => item.status === 'error')
-  if (failed.length > 0) {
-    message.warning(`${failed.length} image(s) failed to process.`)
+  const summary = queue.lastBatchSummary
+  if (!summary) return
+  if (summary.succeeded === 0 && summary.failed > 0) {
+    message.error(`All ${summary.failed} image(s) failed to process.`)
+  } else if (summary.failed > 0 || summary.cancelled > 0) {
+    const parts: string[] = []
+    if (summary.failed > 0) parts.push(`${summary.failed} failed`)
+    if (summary.cancelled > 0) parts.push(`${summary.cancelled} cancelled`)
+    message.warning(`Batch finished: ${summary.succeeded} succeeded, ${parts.join(', ')}.`)
   } else {
     message.success('Done! All images processed.')
   }
@@ -43,6 +50,7 @@ async function onProcessAll(): Promise<void> {
     <div v-else class="editor">
       <aside class="queue-col">
         <ImageQueuePanel />
+        <BatchSummaryBar class="batch-bar-row" @zip-error="(text: string) => message.error(text)" />
       </aside>
       <section class="preview-col" aria-label="Preview">
         <div class="preview-placeholder">
@@ -93,6 +101,11 @@ async function onProcessAll(): Promise<void> {
 .queue-col {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.batch-bar-row {
+  flex-shrink: 0;
 }
 
 .settings-col {

@@ -62,15 +62,15 @@ Legend:
 
 ## Phase 4 — Batch
 
-- [ ] 4.1 Batch queue
-- [ ] 4.2 Bounded concurrency
-- [ ] 4.3 Per-image progress
-- [ ] 4.4 Aggregate progress
-- [ ] 4.5 Per-image errors
-- [ ] 4.6 Process all
-- [ ] 4.7 ZIP generation
-- [ ] 4.8 Download all
-- [ ] 4.9 Batch summary
+- [x] 4.1 Batch queue
+- [x] 4.2 Bounded concurrency
+- [x] 4.3 Per-image progress
+- [x] 4.4 Aggregate progress
+- [x] 4.5 Per-image errors
+- [x] 4.6 Process all
+- [x] 4.7 ZIP generation
+- [x] 4.8 Download all
+- [x] 4.9 Batch summary
 
 ## Phase 5 — Preview
 

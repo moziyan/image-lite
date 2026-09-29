@@ -22,6 +22,19 @@ vi.mock('@/services/image/workerClient', async () => {
 
 import { imageWorkerClient } from '@/services/image/workerClient'
 
+// Capture downloads instead of triggering real browser downloads.
+vi.mock('@/services/download/downloadService', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/services/download/downloadService')>()
+  return {
+    ...original,
+    downloadBlob: vi.fn(),
+  }
+})
+
+import { downloadBlob } from '@/services/download/downloadService'
+
+const downloadMock = vi.mocked(downloadBlob)
+
 function makeFile(name: string, type: string, size = 1024): File {
   return new File([new Uint8Array(size)], name, { type })
 }
@@ -256,6 +269,137 @@ describe('imageQueue store', () => {
       await processing
 
       expect(store.isEmpty).toBe(true)
+    })
+
+    it('processAll never exceeds the concurrency limit', async () => {
+      let running = 0
+      let peak = 0
+      processMock.mockImplementation(() => ({
+        promise: (async () => {
+          running += 1
+          peak = Math.max(peak, running)
+          await new Promise((resolve) => setTimeout(resolve, 10))
+          running -= 1
+          return {
+            blob: new Blob(['x']),
+            width: 1,
+            height: 1,
+            format: 'webp' as const,
+            size: 1,
+            originalSize: 1024,
+            compressionRatio: 0.001,
+            processingTime: 1,
+          }
+        })(),
+        cancel: vi.fn(),
+      }))
+
+      const store = useImageQueueStore()
+      store.addFiles(Array.from({ length: 5 }, (_, i) => makeFile(`img-${i}.jpg`, 'image/jpeg')))
+
+      await store.processAll(settings())
+
+      expect(peak).toBe(2)
+      expect(store.items.every((item) => item.status === 'completed')).toBe(true)
+    })
+
+    it('processAll isolates failures and records a summary', async () => {
+      processMock.mockImplementation((_input, taskId) => {
+        if (taskId.includes('-2')) {
+          return { promise: Promise.reject(new Error('boom')), cancel: vi.fn() }
+        }
+        return successHandle()
+      })
+
+      const store = useImageQueueStore()
+      store.addFiles([
+        makeFile('a.jpg', 'image/jpeg'),
+        makeFile('b.jpg', 'image/jpeg'),
+        makeFile('c.jpg', 'image/jpeg'),
+      ])
+      // Force the middle item's id to contain '-2' deterministically.
+      const failingId = store.items[1]!.id
+      processMock.mockImplementation((_input, taskId) =>
+        taskId === failingId
+          ? { promise: Promise.reject(new Error('boom')), cancel: vi.fn() }
+          : successHandle(),
+      )
+
+      await store.processAll(settings())
+
+      expect(store.items.map((item) => item.status)).toEqual(['completed', 'error', 'completed'])
+      expect(store.lastBatchSummary).toMatchObject({
+        succeeded: 2,
+        failed: 1,
+        cancelled: 0,
+        originalBytes: 2048,
+        outputBytes: 2,
+      })
+      expect(store.isProcessing).toBe(false)
+    })
+
+    it('cancelAll during a batch skips queued items and summarizes cancellation', async () => {
+      const gates = new Map<string, () => void>()
+      processMock.mockImplementation((_input, taskId) => {
+        let rejectTask!: (error: Error) => void
+        const promise = new Promise<never>((_, reject) => {
+          rejectTask = reject
+        })
+        const cancel = vi.fn(() => queueMicrotask(() => rejectTask(new TaskCancelledError())))
+        gates.set(taskId, cancel)
+        return { promise, cancel }
+      })
+
+      const store = useImageQueueStore()
+      store.addFiles(Array.from({ length: 4 }, (_, i) => makeFile(`img-${i}.jpg`, 'image/jpeg')))
+
+      const batch = store.processAll(settings())
+      // Wait until the first lane(s) are in flight, then cancel everything.
+      await vi.waitFor(() => expect(gates.size).toBeGreaterThan(0))
+      store.cancelAll()
+      await batch
+
+      const summary = store.lastBatchSummary!
+      expect(summary.succeeded).toBe(0)
+      expect(summary.cancelled).toBe(4)
+      expect(store.isProcessing).toBe(false)
+    })
+
+    it('downloadAllAsZip downloads an archive containing completed results only', async () => {
+      processMock.mockImplementation(() => successHandle())
+
+      const store = useImageQueueStore()
+      store.addFiles([makeFile('a.jpg', 'image/jpeg'), makeFile('b.png', 'image/png')])
+      await store.processAll(settings())
+      // Force the second item into an error state: it must be excluded.
+      store.items[1]!.status = 'error'
+      store.items[1]!.result = null
+      if (store.items[1]!.resultUrl) {
+        URL.revokeObjectURL(store.items[1]!.resultUrl)
+        store.items[1]!.resultUrl = null
+      }
+
+      await store.downloadAllAsZip()
+
+      expect(downloadMock).toHaveBeenCalledTimes(1)
+      const [blob, fileName] = downloadMock.mock.calls[0]!
+      expect(fileName).toMatch(/^imagelite-\d{4}-\d{2}-\d{2}\.zip$/)
+
+      const JSZip = (await import('jszip')).default
+      const zip = await JSZip.loadAsync(blob as Blob)
+      const names = Object.keys(zip.files)
+      expect(names).toEqual(['a-compressed.webp'])
+    })
+
+    it('downloadAllAsZip throws a typed error when nothing succeeded', async () => {
+      const store = useImageQueueStore()
+      store.addFiles([makeFile('a.jpg', 'image/jpeg')])
+      store.items[0]!.status = 'error'
+
+      await expect(store.downloadAllAsZip()).rejects.toMatchObject({
+        name: 'ZipError',
+        code: 'EMPTY',
+      })
     })
   })
 })

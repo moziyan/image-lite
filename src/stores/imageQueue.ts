@@ -1,10 +1,16 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { downloadBlob } from '@/services/download/downloadService'
+import { runBatch } from '@/services/image/batchProcessor'
 import type { FileValidationError } from '@/services/image/validation'
 import { validateImageFiles } from '@/services/image/validation'
 import { imageWorkerClient, TaskCancelledError } from '@/services/image/workerClient'
+import { buildZip, buildZipEntryName, ZipError } from '@/services/zip/zipService'
 import type { EncodeOptions, ImageProcessResult, ImageStatus, ResizeOptions } from '@/types/image'
+
+/** Conservative default: at most 2 images processed concurrently (AGENT_PROMPTS §4.1). */
+const BATCH_CONCURRENCY = 2
 
 export interface ImageItem {
   id: string
@@ -30,6 +36,17 @@ export interface ProcessSettings {
   output: EncodeOptions
 }
 
+/** Outcome of the most recent batch run. Null until a run finishes. */
+export interface BatchSummary {
+  succeeded: number
+  failed: number
+  cancelled: number
+  /** Sum of original input sizes for succeeded items. */
+  originalBytes: number
+  /** Sum of output sizes for succeeded items. */
+  outputBytes: number
+}
+
 let nextId = 0
 function generateId(): string {
   nextId += 1
@@ -41,11 +58,15 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   const selectedId = ref<string | null>(null)
   /** Validation errors from the most recent add operation. */
   const lastRejected = ref<FileValidationError[]>([])
-  /** True while at least one image is being processed. */
+  /** True while a batch run is in progress. */
   const isProcessing = ref(false)
+  /** Summary of the most recent finished batch run. */
+  const lastBatchSummary = ref<BatchSummary | null>(null)
 
   /** Cancel handles for in-flight tasks, keyed by item id. */
   const activeCancels = new Map<string, () => void>()
+  /** Cooperative cancellation flag for the current batch run. */
+  let batchSignal: { cancelled: boolean } | null = null
 
   const selectedItem = computed<ImageItem | null>(
     () => items.value.find((item) => item.id === selectedId.value) ?? null,
@@ -128,6 +149,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     items.value = []
     selectedId.value = null
     lastRejected.value = []
+    lastBatchSummary.value = null
   }
 
   function selectItem(id: string): void {
@@ -141,6 +163,10 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   }
 
   function cancelAll(): void {
+    // Stop queued batch tasks, then cancel in-flight worker tasks.
+    if (batchSignal) {
+      batchSignal.cancelled = true
+    }
     for (const cancel of activeCancels.values()) {
       cancel()
     }
@@ -200,17 +226,74 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     }
   }
 
-  /** Process all processable (pending/error) images sequentially. */
+  /**
+   * Process all processable (pending/error) images with bounded concurrency.
+   * Individual failures never abort the batch; a summary is recorded at the end.
+   */
   async function processAll(settings: ProcessSettings): Promise<void> {
     if (isProcessing.value) return
+    const ids = processableItems.value.map((item) => item.id)
+    if (ids.length === 0) return
+
     isProcessing.value = true
+    lastBatchSummary.value = null
+    const signal = { cancelled: false }
+    batchSignal = signal
+
     try {
-      for (const item of processableItems.value) {
-        await processItem(item.id, settings)
+      await runBatch(ids, (id) => processItem(id, settings), {
+        concurrency: BATCH_CONCURRENCY,
+        signal,
+      })
+
+      // Summarize from the final item states (single source of truth).
+      const summary: BatchSummary = {
+        succeeded: 0,
+        failed: 0,
+        cancelled: 0,
+        originalBytes: 0,
+        outputBytes: 0,
       }
+      for (const id of ids) {
+        const item = items.value.find((candidate) => candidate.id === id)
+        if (!item) continue // removed mid-run
+        if (item.status === 'completed' && item.result) {
+          summary.succeeded += 1
+          summary.originalBytes += item.size
+          summary.outputBytes += item.result.size
+        } else if (item.status === 'error') {
+          summary.failed += 1
+        } else if (item.status === 'cancelled' || item.status === 'pending') {
+          // 'pending' = never started because the batch was cancelled
+          summary.cancelled += 1
+        }
+      }
+      lastBatchSummary.value = summary
     } finally {
+      batchSignal = null
       isProcessing.value = false
     }
+  }
+
+  /**
+   * Download all successful results as a single ZIP archive.
+   * Failed/cancelled items are skipped; original files are never included.
+   */
+  async function downloadAllAsZip(): Promise<void> {
+    const completed = items.value.filter(
+      (item) => item.status === 'completed' && item.result !== null,
+    )
+    if (completed.length === 0) {
+      throw new ZipError('EMPTY', 'There are no successful results to download.')
+    }
+
+    const blob = await buildZip(
+      completed.map((item) => ({
+        name: buildZipEntryName(item.name, item.result!.format),
+        blob: item.result!.blob,
+      })),
+    )
+    downloadBlob(blob, `imagelite-${new Date().toISOString().slice(0, 10)}.zip`)
   }
 
   return {
@@ -218,6 +301,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     selectedId,
     lastRejected,
     isProcessing,
+    lastBatchSummary,
     selectedItem,
     isEmpty,
     count,
@@ -232,6 +316,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     cancelAll,
     processItem,
     processAll,
+    downloadAllAsZip,
   }
 })
 
