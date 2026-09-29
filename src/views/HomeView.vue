@@ -4,9 +4,13 @@ import { useMessage } from 'naive-ui'
 import AppHeader from '@/components/common/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ImageQueuePanel from '@/components/image/ImageQueuePanel.vue'
+import CompressionSummary from '@/components/result/CompressionSummary.vue'
+import SettingsPanel from '@/components/settings/SettingsPanel.vue'
 import { useImageQueueStore } from '@/stores/imageQueue'
+import { useSettingsStore } from '@/stores/settings'
 
 const queue = useImageQueueStore()
+const settings = useSettingsStore()
 const message = useMessage()
 
 function onFilesSelected(files: File[]): void {
@@ -15,6 +19,19 @@ function onFilesSelected(files: File[]): void {
     message.error(rejected[0]!.message)
   } else if (rejected.length > 1) {
     message.error(`${rejected.length} files were rejected. Check format and size limits.`)
+  }
+}
+
+async function onProcessAll(): Promise<void> {
+  await queue.processAll({
+    resize: { ...settings.resize },
+    output: { ...settings.output },
+  })
+  const failed = queue.items.filter((item) => item.status === 'error')
+  if (failed.length > 0) {
+    message.warning(`${failed.length} image(s) failed to process.`)
+  } else {
+    message.success('Done! All images processed.')
   }
 }
 </script>
@@ -32,14 +49,16 @@ function onFilesSelected(files: File[]): void {
           <img
             v-if="queue.selectedItem"
             class="preview-image"
-            :src="queue.selectedItem.previewUrl"
+            :src="queue.selectedItem.resultUrl ?? queue.selectedItem.previewUrl"
             :alt="`Preview of ${queue.selectedItem.name}`"
           />
           <p v-else class="muted">Select an image to preview it.</p>
         </div>
       </section>
-      <aside class="settings-col" aria-label="Settings">
-        <p class="muted">Settings panel — coming in Phase 2.</p>
+      <aside class="settings-col" aria-label="Settings and results">
+        <SettingsPanel @process-all="onProcessAll" />
+        <hr v-if="queue.selectedItem" class="divider" />
+        <CompressionSummary v-if="queue.selectedItem" :item="queue.selectedItem" />
       </aside>
     </div>
   </div>
@@ -76,6 +95,10 @@ function onFilesSelected(files: File[]): void {
   flex-direction: column;
 }
 
+.settings-col {
+  overflow-y: auto;
+}
+
 .preview-col {
   display: flex;
 }
@@ -100,6 +123,12 @@ function onFilesSelected(files: File[]): void {
 .muted {
   color: #9ca3af;
   font-size: 14px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 16px 0;
 }
 
 @media (max-width: 900px) {

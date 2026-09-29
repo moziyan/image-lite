@@ -37,18 +37,18 @@ Legend:
 
 ## Phase 2 — Image Core
 
-- [ ] 2.1 File validation
-- [ ] 2.2 Image decode
-- [ ] 2.3 Image metadata/dimensions
-- [ ] 2.4 Resize calculation
-- [ ] 2.5 Canvas resizer
-- [ ] 2.6 JPEG encoder
-- [ ] 2.7 PNG encoder
-- [ ] 2.8 WebP encoder
-- [ ] 2.9 Encoder registry
-- [ ] 2.10 Image processor service
-- [ ] 2.11 Compression statistics
-- [ ] 2.12 Download service
+- [x] 2.1 File validation
+- [x] 2.2 Image decode
+- [x] 2.3 Image metadata/dimensions
+- [x] 2.4 Resize calculation
+- [x] 2.5 Canvas resizer
+- [x] 2.6 JPEG encoder
+- [x] 2.7 PNG encoder
+- [x] 2.8 WebP encoder
+- [x] 2.9 Encoder registry
+- [x] 2.10 Image processor service
+- [x] 2.11 Compression statistics
+- [x] 2.12 Download service
 
 ## Phase 3 — Worker
 
