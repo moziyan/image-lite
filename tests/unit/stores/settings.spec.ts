@@ -62,4 +62,40 @@ describe('settings store capabilities', () => {
     settings.reset()
     expect(settings.preserveMetadata).toBe(false)
   })
+
+  it('target size defaults to disabled with sane floors', () => {
+    const settings = useSettingsStore()
+    expect(settings.targetSize.enabled).toBe(false)
+    expect(settings.targetSizeApplicable).toBe(false)
+    expect(settings.targetSize.minimumQuality).toBe(30)
+    expect(settings.targetSize.minWidth).toBe(64)
+  })
+
+  it('clamps target-size inputs to sane ranges', () => {
+    const settings = useSettingsStore()
+    settings.setTargetSize({ targetBytes: 1 }) // below the 1 KB floor
+    expect(settings.targetSize.targetBytes).toBe(1024)
+    settings.setTargetSize({ minimumQuality: 500 })
+    expect(settings.targetSize.minimumQuality).toBe(100)
+    settings.setTargetSize({ minimumQuality: -5 })
+    expect(settings.targetSize.minimumQuality).toBe(1)
+  })
+
+  it('target size does not apply to PNG (lossless)', () => {
+    const settings = useSettingsStore()
+    settings.setTargetSize({ enabled: true })
+    settings.setFormat('webp')
+    expect(settings.targetSizeApplicable).toBe(true)
+    settings.setFormat('png')
+    expect(settings.targetSizeApplicable).toBe(false)
+  })
+
+  it('reset restores target-size defaults', () => {
+    const settings = useSettingsStore()
+    settings.setTargetSize({ enabled: true, targetBytes: 99 * 1024, minimumQuality: 5 })
+    settings.reset()
+    expect(settings.targetSize.enabled).toBe(false)
+    expect(settings.targetSize.targetBytes).toBe(500 * 1024)
+    expect(settings.targetSize.minimumQuality).toBe(30)
+  })
 })

@@ -42,6 +42,18 @@ function download(): void {
       <NStatistic label="Dimensions" :value="`${result.width}×${result.height}`" />
     </div>
     <p class="verdict" :class="{ increased }">{{ summaryText }}</p>
+    <p
+      v-if="result.targetSize"
+      class="target-note"
+      :class="{ unmet: !result.targetSize.metTarget }"
+    >
+      <template v-if="result.targetSize.metTarget">
+        Target size met ({{ result.targetSize.attempts }} attempt{{
+          result.targetSize.attempts === 1 ? '' : 's'
+        }}).
+      </template>
+      <template v-else> {{ result.targetSize.note ?? 'Target size not reachable.' }} </template>
+    </p>
     <NButton size="small" secondary type="primary" @click="download"> Download </NButton>
   </section>
   <p v-else-if="item.status === 'error'" class="error-text" role="alert">
@@ -71,6 +83,16 @@ function download(): void {
 
 .verdict.increased {
   color: #d03050;
+}
+
+.target-note {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.target-note.unmet {
+  color: #b45309;
 }
 
 .error-text {

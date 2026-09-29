@@ -92,13 +92,13 @@ Legend:
 
 ## Phase 7 — Target Size
 
-- [ ] 7.1 Target-size settings model
-- [ ] 7.2 Candidate encoding
-- [ ] 7.3 Quality binary search
-- [ ] 7.4 Dimension fallback
-- [ ] 7.5 Best-effort result
-- [ ] 7.6 Target-size UI
-- [ ] 7.7 Explain impossible targets
+- [x] 7.1 Target-size settings model
+- [x] 7.2 Candidate encoding
+- [x] 7.3 Quality binary search
+- [x] 7.4 Dimension fallback
+- [x] 7.5 Best-effort result
+- [x] 7.6 Target-size UI
+- [x] 7.7 Explain impossible targets
 
 ## Phase 8 — UX / Accessibility / i18n
 

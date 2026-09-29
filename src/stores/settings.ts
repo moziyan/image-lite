@@ -2,7 +2,8 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
 
 import { supportedOutputFormats } from '@/services/image/capabilities'
-import type { EncodeOptions, OutputFormat, ResizeOptions } from '@/types/image'
+import { TARGET_SIZE_DEFAULTS } from '@/services/image/targetSize'
+import type { EncodeOptions, OutputFormat, ResizeOptions, TargetSizeInput } from '@/types/image'
 
 export interface GlobalSettings {
   resize: ResizeOptions
@@ -57,6 +58,33 @@ export const useSettingsStore = defineStore('settings', () => {
   /** PNG is lossless: the quality control must not apply (PRODUCT.md §10). */
   const qualityApplicable = computed(() => output.format !== 'png')
 
+  /**
+   * Target-size settings (7.1). Disabled when targetBytes is null.
+   * PNG is lossless, so target size is gated off for PNG in the UI.
+   */
+  const targetSize = reactive<TargetSizeInput & { enabled: boolean }>({
+    enabled: false,
+    targetBytes: 500 * 1024,
+    allowResize: true,
+    minimumQuality: TARGET_SIZE_DEFAULTS.minimumQuality,
+    minWidth: TARGET_SIZE_DEFAULTS.minWidth,
+    minHeight: TARGET_SIZE_DEFAULTS.minHeight,
+  })
+
+  /** Target size applies only to lossy formats. */
+  const targetSizeApplicable = computed(() => targetSize.enabled && output.format !== 'png')
+
+  function setTargetSize(patch: Partial<TargetSizeInput & { enabled: boolean }>): void {
+    if (patch.enabled !== undefined) targetSize.enabled = patch.enabled
+    if (patch.targetBytes !== undefined) {
+      targetSize.targetBytes = Math.max(1024, Math.round(patch.targetBytes))
+    }
+    if (patch.allowResize !== undefined) targetSize.allowResize = patch.allowResize
+    if (patch.minimumQuality !== undefined) {
+      targetSize.minimumQuality = Math.min(100, Math.max(1, Math.round(patch.minimumQuality)))
+    }
+  }
+
   function setFormat(format: OutputFormat): void {
     output.format = format
   }
@@ -77,6 +105,10 @@ export const useSettingsStore = defineStore('settings', () => {
     output.format = 'webp'
     output.quality = DEFAULT_QUALITY
     preserveMetadata.value = false
+    targetSize.enabled = false
+    targetSize.targetBytes = 500 * 1024
+    targetSize.allowResize = true
+    targetSize.minimumQuality = TARGET_SIZE_DEFAULTS.minimumQuality
   }
 
   return {
@@ -87,6 +119,9 @@ export const useSettingsStore = defineStore('settings', () => {
     isFormatAvailable,
     detectCapabilities,
     qualityApplicable,
+    targetSize,
+    targetSizeApplicable,
+    setTargetSize,
     setFormat,
     setQuality,
     setPreserveMetadata,

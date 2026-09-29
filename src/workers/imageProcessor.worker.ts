@@ -7,10 +7,12 @@
  * Cancellation is cooperative: flags are checked between pipeline stages.
  */
 
+import { createProcessCanvas, type ProcessCanvas } from '@/services/image/canvas'
 import { decodeImage } from '@/services/image/decoder'
 import { defaultEncoderRegistry } from '@/services/image/encoderRegistry'
 import { toImageError } from '@/services/image/errors'
 import { CanvasImageResizer } from '@/services/image/resizer'
+import { searchTargetSize } from '@/services/image/targetSize'
 import { validateImageFile } from '@/services/image/validation'
 import type { ImageProcessResult } from '@/types/image'
 import type { WorkerRequest, WorkerResponse } from '@/types/worker'
@@ -58,18 +60,64 @@ async function processTask(
     post({ type: 'progress', taskId, progress: 0.7 })
 
     const encoder = defaultEncoderRegistry.resolve(payload.output.format)
-    const blob = await encoder.encode(canvas, payload.output)
-    throwIfCancelled(taskId)
+    let blob: Blob
+    let width = canvas.width
+    let height = canvas.height
+    let targetInfo: ImageProcessResult['targetSize']
+
+    if (payload.targetSize && payload.output.format !== 'png') {
+      // Best-effort target-size search: quality binary search, then
+      // dimension fallback (AGENT_PROMPTS §7.2). PNG is lossless — quality
+      // search does not apply, so PNG skips target size entirely.
+      const search = await searchTargetSize(
+        payload.targetSize,
+        canvas.width,
+        canvas.height,
+        async (candidate) => {
+          throwIfCancelled(taskId)
+          let source: ProcessCanvas = canvas
+          if (candidate.scale !== 1) {
+            source = createProcessCanvas(
+              Math.max(1, Math.round(canvas.width * candidate.scale)),
+              Math.max(1, Math.round(canvas.height * candidate.scale)),
+            )
+            const ctx = source.getContext()
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = 'high'
+            ctx.drawImage(canvas.getCanvasSource(), 0, 0, source.width, source.height)
+          }
+          const encoded = await encoder.encode(source, {
+            ...payload.output,
+            quality: candidate.quality,
+          })
+          return { size: encoded.size, blob: encoded }
+        },
+      )
+      blob = search.result.blob
+      width = Math.max(1, Math.round(canvas.width * search.candidate.scale))
+      height = Math.max(1, Math.round(canvas.height * search.candidate.scale))
+      targetInfo = {
+        metTarget: search.metTarget,
+        attempts: search.attempts,
+        quality: search.candidate.quality,
+        note: search.note,
+      }
+      throwIfCancelled(taskId)
+    } else {
+      blob = await encoder.encode(canvas, payload.output)
+      throwIfCancelled(taskId)
+    }
 
     const result: ImageProcessResult = {
       blob,
-      width: canvas.width,
-      height: canvas.height,
+      width,
+      height,
       format: payload.output.format,
       size: blob.size,
       originalSize: payload.file.size,
       compressionRatio: payload.file.size > 0 ? blob.size / payload.file.size : 0,
       processingTime: performance.now() - startedAt,
+      targetSize: targetInfo,
     }
     post({ type: 'success', taskId, result })
   } catch (error) {

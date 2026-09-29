@@ -7,7 +7,13 @@ import type { FileValidationError } from '@/services/image/validation'
 import { validateImageFiles } from '@/services/image/validation'
 import { imageWorkerClient, TaskCancelledError } from '@/services/image/workerClient'
 import { buildZip, buildZipEntryName, ZipError } from '@/services/zip/zipService'
-import type { EncodeOptions, ImageProcessResult, ImageStatus, ResizeOptions } from '@/types/image'
+import type {
+  EncodeOptions,
+  ImageProcessResult,
+  ImageStatus,
+  ResizeOptions,
+  TargetSizeInput,
+} from '@/types/image'
 
 /** Conservative default: at most 2 images processed concurrently (AGENT_PROMPTS §4.1). */
 const BATCH_CONCURRENCY = 2
@@ -36,6 +42,8 @@ export interface ProcessSettings {
   output: EncodeOptions
   /** Best-effort metadata preservation request (default: strip). */
   preserveMetadata?: boolean
+  /** Best-effort target-size search; lossy formats only. */
+  targetSize?: TargetSizeInput
 }
 
 /** Outcome of the most recent batch run. Null until a run finishes. */
@@ -196,6 +204,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
         resize: { ...settings.resize },
         output: { ...settings.output },
         metadata: { preserveExif: settings.preserveMetadata ?? false },
+        targetSize: settings.targetSize ? { ...settings.targetSize } : undefined,
       },
       item.id,
       {

@@ -19,6 +19,15 @@ export interface EncodeOptions {
   quality?: number
 }
 
+/** Target-size configuration (serializable mirror of TargetSizeOptions). */
+export interface TargetSizeInput {
+  targetBytes: number
+  allowResize: boolean
+  minimumQuality: number
+  minWidth: number
+  minHeight: number
+}
+
 export interface ImageProcessInput {
   file: File
   resize: ResizeOptions
@@ -26,6 +35,8 @@ export interface ImageProcessInput {
   metadata: {
     preserveExif: boolean
   }
+  /** When set, the pipeline runs a best-effort search to fit this size. */
+  targetSize?: TargetSizeInput
 }
 
 export interface ImageProcessResult {
@@ -37,6 +48,13 @@ export interface ImageProcessResult {
   originalSize: number
   compressionRatio: number
   processingTime: number
+  /** Present when a target-size search ran. */
+  targetSize?: {
+    metTarget: boolean
+    attempts: number
+    quality?: number
+    note?: string
+  }
 }
 
 export type ImageErrorCode =

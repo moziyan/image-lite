@@ -11,6 +11,8 @@ export interface ProcessCanvas {
   readonly width: number
   readonly height: number
   getContext(): Canvas2DContext
+  /** Underlying drawable source (for downscaling into another canvas). */
+  getCanvasSource(): CanvasImageSource
   toBlob(type?: string, quality?: number): Promise<Blob>
 }
 
@@ -37,6 +39,10 @@ class DomProcessCanvas implements ProcessCanvas {
       throw new Error('Failed to acquire 2D canvas context')
     }
     return ctx
+  }
+
+  getCanvasSource(): CanvasImageSource {
+    return this.canvas
   }
 
   toBlob(type?: string, quality?: number): Promise<Blob> {
@@ -71,6 +77,10 @@ class OffscreenProcessCanvas implements ProcessCanvas {
       throw new Error('Failed to acquire OffscreenCanvas 2D context')
     }
     return ctx
+  }
+
+  getCanvasSource(): CanvasImageSource {
+    return this.canvas
   }
 
   toBlob(type?: string, quality?: number): Promise<Blob> {

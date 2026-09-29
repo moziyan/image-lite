@@ -37,6 +37,22 @@ const qualityValue = computed({
   get: () => settings.output.quality ?? 80,
   set: (value: number) => settings.setQuality(value),
 })
+
+/** Target size shown in KB; stored internally in bytes. */
+const targetKB = computed({
+  get: () => Math.round(settings.targetSize.targetBytes / 1024),
+  set: (kb: number | null) => {
+    // Ignore transient nulls (field cleared mid-edit); only commit numbers.
+    if (typeof kb === 'number' && Number.isFinite(kb)) {
+      settings.setTargetSize({ targetBytes: kb * 1024 })
+    }
+  },
+})
+
+const targetSizeEnabled = computed({
+  get: () => settings.targetSize.enabled,
+  set: (value: boolean) => settings.setTargetSize({ enabled: value }),
+})
 </script>
 
 <template>
@@ -114,6 +130,51 @@ const qualityValue = computed({
         </NFormItem>
         <p v-if="settings.preserveMetadata" class="format-note">
           Best effort only: canvas re-encoding strips most metadata in current browsers.
+        </p>
+
+        <NFormItem>
+          <NCheckbox
+            v-model:checked="targetSizeEnabled"
+            :disabled="settings.output.format === 'png'"
+          >
+            Target file size
+          </NCheckbox>
+        </NFormItem>
+        <template v-if="settings.targetSizeApplicable">
+          <NFormItem label="Target (KB)">
+            <NInputNumber
+              v-model:value="targetKB"
+              :min="1"
+              :max="102400"
+              :step="50"
+              aria-label="Target file size in kilobytes"
+            />
+          </NFormItem>
+          <NFormItem :label="`Min quality: ${settings.targetSize.minimumQuality}`">
+            <NSlider
+              :value="settings.targetSize.minimumQuality"
+              :min="1"
+              :max="100"
+              :step="1"
+              aria-label="Minimum quality for target-size search"
+              @update:value="settings.setTargetSize({ minimumQuality: $event })"
+            />
+          </NFormItem>
+          <NFormItem>
+            <NCheckbox
+              :checked="settings.targetSize.allowResize"
+              @update:checked="settings.setTargetSize({ allowResize: $event })"
+            >
+              Allow reducing dimensions
+            </NCheckbox>
+          </NFormItem>
+          <p class="format-note">
+            Best effort: quality is searched, then dimensions reduced if needed. Exact size is not
+            guaranteed.
+          </p>
+        </template>
+        <p v-else-if="targetSizeEnabled && settings.output.format === 'png'" class="format-note">
+          PNG is lossless — target size applies to JPEG / WebP / AVIF only.
         </p>
 
         <NButton
