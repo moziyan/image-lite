@@ -13,8 +13,15 @@
  * - everything else (including any blob/data URLs): passthrough, no cache
  */
 
-const VERSION = 'imagelite-v3'
+const VERSION = 'imagelite-v4'
 const SHELL_CACHE = `${VERSION}-shell`
+
+/**
+ * Base path the SW is scoped to ('/' locally, '/<repo>/' on GitHub Pages).
+ * Derived from the SW's own URL so no hard-coded prefix is needed.
+ */
+const BASE = new URL('./', self.location.href).pathname
+const withBase = (u) => (u.startsWith('/') ? BASE + u.slice(1) : BASE + u)
 
 /**
  * Core shell precached at install time.
@@ -28,14 +35,16 @@ const SHELL_URLS = [
   '/manifest.webmanifest',
   '/favicon.svg',
   /* __PRECACHE_URLS__ */
-].map((u) => (u.startsWith('/') ? u : `/${u}`))
+].map(withBase)
 
 function isStaticAsset(url) {
+  const path = url.pathname.startsWith(BASE) ? url.pathname.slice(BASE.length) : null
+  if (path === null) return false
   return (
-    url.pathname.startsWith('/assets/') ||
-    url.pathname.startsWith('/icons/') ||
-    url.pathname === '/favicon.svg' ||
-    url.pathname === '/manifest.webmanifest'
+    path.startsWith('assets/') ||
+    path.startsWith('icons/') ||
+    path === 'favicon.svg' ||
+    path === 'manifest.webmanifest'
   )
 }
 
@@ -73,21 +82,26 @@ self.addEventListener('fetch', (event) => {
   if (dest === 'image' || dest === 'video' || dest === 'audio') return
 
   // SPA shell: real navigations AND same-origin HTML/document requests
-  // (fetch('/') has mode 'cors', not 'navigate', but still wants the shell).
+  // (fetch(BASE) has mode 'cors', not 'navigate', but still wants the shell).
+  // 404.html (the GitHub Pages SPA fallback) is normalized to index.html.
+  const indexUrl = withBase('/index.html')
+  const notFoundUrl = withBase('/404.html')
   const wantsHtml =
     request.mode === 'navigate' ||
     dest === 'document' ||
     (url.origin === self.location.origin &&
-      (url.pathname === '/' || url.pathname === '/index.html'))
+      (url.pathname === BASE || url.pathname === indexUrl || url.pathname === notFoundUrl))
   if (wantsHtml) {
     event.respondWith(
       fetch(request)
         .then((response) => {
           const copy = response.clone()
-          caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', copy))
+          caches.open(SHELL_CACHE).then((cache) => cache.put(indexUrl, copy))
           return response
         })
-        .catch(() => caches.match('/index.html').then((cached) => cached || caches.match('/'))),
+        .catch(() =>
+          caches.match(indexUrl).then((cached) => cached || caches.match(withBase('/'))),
+        ),
     )
     return
   }

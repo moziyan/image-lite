@@ -11,7 +11,7 @@ import { defineConfig } from 'vitest/config'
  * Only static shell assets are listed — never user image data. jszip is
  * excluded: it is lazy-loaded and cached at runtime only if ZIP is used.
  */
-function swPrecachePlugin() {
+function swPrecachePlugin(base: string) {
   return {
     name: 'sw-precache',
     apply: 'build' as const,
@@ -22,7 +22,7 @@ function swPrecachePlugin() {
         .filter(
           (name) => (name.endsWith('.js') || name.endsWith('.css')) && !name.includes('jszip'),
         )
-        .map((name) => `'assets/${name}'`)
+        .map((name) => `'${base}assets/${name}'`)
 
       const swPath = join(outDir, 'sw.js')
       const marker = '/* __PRECACHE_URLS__ */'
@@ -35,8 +35,14 @@ function swPrecachePlugin() {
   }
 }
 
+// Base path for GitHub Pages project sites (https://<user>.github.io/<repo>/).
+// Set VITE_BASE when building for a different mount point (e.g. '/' for a
+// user/organization site). Defaults to '/' so local dev/preview are unchanged.
+const base = process.env.VITE_BASE ?? '/'
+
 export default defineConfig({
-  plugins: [vue(), swPrecachePlugin()],
+  base,
+  plugins: [vue(), swPrecachePlugin(base)],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

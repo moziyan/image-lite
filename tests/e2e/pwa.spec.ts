@@ -20,7 +20,9 @@ test.describe('PWA', () => {
     }, manifestUrl)
     expect(manifest.name).toContain('ImageLite')
     expect(manifest.display).toBe('standalone')
-    expect(manifest.start_url).toBe('/')
+    // start_url is relative ('.') so the PWA installs correctly from any
+    // mount point (root locally, /<repo>/ on GitHub Pages).
+    expect(manifest.start_url).toBe('.')
     expect(manifest.icons.length).toBeGreaterThanOrEqual(2)
     // 192 and 512 are required for installability.
     const sizes = manifest.icons.flatMap((i: { sizes: string }) => i.sizes.split(' '))

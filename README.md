@@ -46,6 +46,23 @@ static application shell at build time, so the whole UI works offline on
 first install. **Privacy rule:** only shell assets (HTML/JS/CSS/icons) are
 cached — user image bytes are never intercepted, cached, or transmitted.
 
+## Deployment (GitHub Pages)
+
+`.github/workflows/deploy.yml` builds and deploys to GitHub Pages on every
+push to `main` (typecheck + lint + tests + build, then publish `dist/`).
+
+One-time setup:
+
+1. Push this repository to GitHub (e.g. `image-lite`).
+2. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. Push to `main` (or run the workflow manually) — the site goes live at
+   `https://<user>.github.io/<repo>/`.
+
+The build base path is set automatically from the repository name
+(`VITE_BASE=/<repo>/`). For a `<user>.github.io` root site (or a custom
+domain), the workflow detects that and builds with base `/`. `dist/404.html`
+is generated as the SPA fallback for deep links.
+
 ## Documentation
 
 - `PRODUCT.md` — product requirements

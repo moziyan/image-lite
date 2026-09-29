@@ -19,9 +19,10 @@
     <script>
       // Register the service worker for the offline app shell.
       // User image bytes are never cached (see sw.js).
+      // The scope is the deployment base (root locally, /<repo>/ on GitHub Pages).
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {
+          navigator.serviceWorker.register('sw.js').catch(() => {
             // Offline support is best-effort; the app works without it.
           })
         })
