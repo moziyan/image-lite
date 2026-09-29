@@ -13,7 +13,7 @@
  * - everything else (including any blob/data URLs): passthrough, no cache
  */
 
-const VERSION = 'imagelite-v1'
+const VERSION = 'imagelite-v3'
 const SHELL_CACHE = `${VERSION}-shell`
 
 /**
@@ -92,20 +92,21 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets: cache-first for fast repeat loads and offline use.
+  // Static assets: network-first (fresh when online), falling back to the
+  // precached shell offline. Network-first avoids serving a stale or
+  // SW-intercepted script to WebKit module workers, which can fail when a
+  // cached Response is replayed for a worker script request.
   if (isStaticAsset(url)) {
     event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((response) => {
-            if (response.ok) {
-              const copy = response.clone()
-              caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy))
-            }
-            return response
-          }),
-      ),
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone()
+            caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy))
+          }
+          return response
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match(url.pathname))),
     )
     return
   }

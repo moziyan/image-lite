@@ -13,24 +13,24 @@ Final audit for the Phase 10 release. Evidence is referenced for each item.
 
 ## Tests
 
-| #   | Check              | Result  | Evidence                                                               |
-| --- | ------------------ | ------- | ---------------------------------------------------------------------- |
-| 5   | Unit + integration | ✅ PASS | 171 passed / 20 files (`npm run test`)                                 |
-| 6   | E2E app flows      | ✅ PASS | 4 passed (home, i18n, theme)                                           |
-| 7   | E2E PWA/offline    | ✅ PASS | 4 passed (manifest, SW precache, offline processing, no image caching) |
+| #   | Check              | Result  | Evidence                                                                                             |
+| --- | ------------------ | ------- | ---------------------------------------------------------------------------------------------------- |
+| 5   | Unit + integration | ✅ PASS | 171 passed / 20 files (`npm run test`)                                                               |
+| 6   | E2E app flows      | ✅ PASS | 15 passed = 5 tests × 3 engines (chromium/firefox/webkit): home, compress pipeline, i18n ×2, theme   |
+| 7   | E2E PWA/offline    | ✅ PASS | 11 passed + 1 skipped across 3 engines (manifest, SW precache, offline processing, no image caching) |
 
 ## Functional
 
-| #   | Check                 | Result     | Evidence                                                                                                                                                                                                                                                                                                         |
-| --- | --------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 8   | Browser compatibility | ⚠️ PARTIAL | Chromium verified end-to-end (encode/decode/worker/SW). Firefox/Safari use the same standard APIs (`createImageBitmap`, `OffscreenCanvas`, canvas `convertToBlob`); AVIF already gated behind runtime capability detection. No Chromium-only APIs used. Not executed on real Firefox/Safari in this environment. |
-| 9   | Mobile layout         | ✅ PASS    | 375px viewport: header wraps, single-column grid, preview first, no overflow (Phase 8 screenshots)                                                                                                                                                                                                               |
-| 10  | Accessibility         | ✅ PASS    | Keyboard upload/select/slider, named buttons, `role=alert` on errors, visible focus; DOM audit confirmed all interactive elements named (PRODUCT §15)                                                                                                                                                            |
-| 11  | Worker cancellation   | ✅ PASS    | Cooperative cancel between pipeline stages; cancel during batch verified (Phase 3/4)                                                                                                                                                                                                                             |
-| 12  | Large-image limits    | ✅ PASS    | 51 MB / 8000×5000 processed; `MAX_FILE_SIZE`/`MAX_PIXELS` enforced with typed errors                                                                                                                                                                                                                             |
-| 13  | Download behavior     | ✅ PASS    | Per-image download with correct extension; Object URL revoked after use                                                                                                                                                                                                         |
-| 13a | Statistics (PRODUCT §12) | ✅ PASS | Result card shows original bytes+dims, output bytes+dims, format, processing duration, saved/increased %. Browser-verified: `Original 5 KB · 1200×900 · Output 2.5 KB · 1200×900 · Time 64 ms`                                                                                                                                                                                                                                          |
-| 14  | ZIP behavior          | ✅ PASS    | 3-entry real ZIP built, name sanitization + dedupe, integrity checked (Phase 4)                                                                                                                                                                                                                                  |
+| #   | Check                    | Result  | Evidence                                                                                                                                                                                                                                                                                                                                      |
+| --- | ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8   | Browser compatibility    | ✅ PASS | Full E2E suite green on **chromium, firefox and webkit**: real compress pipeline (upload → worker → statistics), i18n switching, theme toggle, home load. PWA: manifest + SW precache + no-image-caching on all three; offline pipeline on chromium/firefox. AVIF gated behind runtime capability detection. See "Cross-browser notes" below. |
+| 9   | Mobile layout            | ✅ PASS | 375px viewport: header wraps, single-column grid, preview first, no overflow (Phase 8 screenshots)                                                                                                                                                                                                                                            |
+| 10  | Accessibility            | ✅ PASS | Keyboard upload/select/slider, named buttons, `role=alert` on errors, visible focus; DOM audit confirmed all interactive elements named (PRODUCT §15)                                                                                                                                                                                         |
+| 11  | Worker cancellation      | ✅ PASS | Cooperative cancel between pipeline stages; cancel during batch verified (Phase 3/4)                                                                                                                                                                                                                                                          |
+| 12  | Large-image limits       | ✅ PASS | 51 MB / 8000×5000 processed; `MAX_FILE_SIZE`/`MAX_PIXELS` enforced with typed errors                                                                                                                                                                                                                                                          |
+| 13  | Download behavior        | ✅ PASS | Per-image download with correct extension; Object URL revoked after use                                                                                                                                                                                                                                                                       |
+| 13a | Statistics (PRODUCT §12) | ✅ PASS | Result card shows original bytes+dims, output bytes+dims, format, processing duration, saved/increased %. Browser-verified: `Original 5 KB · 1200×900 · Output 2.5 KB · 1200×900 · Time 64 ms`                                                                                                                                                |
+| 14  | ZIP behavior             | ✅ PASS | 3-entry real ZIP built, name sanitization + dedupe, integrity checked (Phase 4)                                                                                                                                                                                                                                                               |
 
 ## Privacy & Security
 
@@ -49,9 +49,21 @@ Final audit for the Phase 10 release. Evidence is referenced for each item.
 | 20  | Service worker | ✅ PASS | Build-time precache of full shell; network-first nav with offline fallback |
 | 21  | Offline shell  | ✅ PASS | Reload + full compress pipeline ran offline (test-red 2.7 KB → 1.4 KB)     |
 
-## Notes
+## Cross-browser notes
 
-- Item 8 is the only non-full PASS: cross-browser execution was limited to
-  Chromium in this environment. The code paths are standards-based and the
-  riskiest feature (AVIF encode) is already runtime-gated, but a manual
-  pass on real Firefox and Safari is recommended before public launch.
+- The full E2E suite runs on chromium, firefox and webkit (Playwright
+  projects). All 5 app tests pass on every engine, including a real
+  end-to-end compress through the Web Worker pipeline.
+- PWA suite: manifest validity, SW registration + shell precache, and the
+  "never cache user image bytes" guard pass on all three engines. The
+  offline _processing_ case runs on chromium and firefox.
+- **WebKit offline worker caveat:** Playwright's `context.setOffline(true)`
+  blocks all worker startup in WebKit (even `blob:` workers), so the
+  offline-compress assertion is skipped on webkit — a test-harness
+  limitation, not an application defect. WebKit's online compress pipeline
+  is covered by the standard E2E suite. Real-network offline behaviour on
+  Safari should be spot-checked manually before public launch.
+- Service worker uses network-first for static assets and navigation
+  (cache fallback offline) so module workers and hashed bundles are never
+  served stale across deployments; the precache is versioned
+  (`imagelite-v3`) and old caches are purged on activate.
