@@ -196,7 +196,7 @@ justified while native support is rolling out.
 - **Default: strip.** All output is produced by canvas re-encoding, which
   drops EXIF/XMP/ICC in every current browser.
 - **Preserve (opt-in):** best-effort only. The pipeline carries the flag,
-  but metadata preservation is *not guaranteed* and the UI says so —
+  but metadata preservation is _not guaranteed_ and the UI says so —
   preservation is never claimed unless verified.
 - **EXIF orientation** is not metadata preservation: it is always applied
   at decode time (`createImageBitmap` with `imageOrientation: 'from-image'`)
