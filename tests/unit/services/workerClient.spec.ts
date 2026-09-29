@@ -74,13 +74,16 @@ describe('ImageWorkerClient', () => {
 
   it('posts a typed process request', () => {
     const client = new ImageWorkerClient()
-    client.process(makeInput(), 'task-1')
+    const input = makeInput()
+    client.process(input, 'task-1')
 
     const worker = MockWorker.instances[0]!
+    // Compare against the very same input object: File.lastModified is
+    // stamped at construction time and can differ by a millisecond.
     expect(worker.posted[0]).toEqual({
       type: 'process',
       taskId: 'task-1',
-      payload: makeInput(),
+      payload: input,
     })
     client.dispose()
   })
