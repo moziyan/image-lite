@@ -52,13 +52,13 @@ Legend:
 
 ## Phase 3 — Worker
 
-- [ ] 3.1 Worker request/response types
-- [ ] 3.2 Worker processor
-- [ ] 3.3 Progress reporting
-- [ ] 3.4 Error propagation
-- [ ] 3.5 Cancellation
-- [ ] 3.6 Resource cleanup
-- [ ] 3.7 Integrate Worker with UI
+- [x] 3.1 Worker request/response types
+- [x] 3.2 Worker processor
+- [x] 3.3 Progress reporting
+- [x] 3.4 Error propagation
+- [x] 3.5 Cancellation
+- [x] 3.6 Resource cleanup
+- [x] 3.7 Integrate Worker with UI
 
 ## Phase 4 — Batch
 

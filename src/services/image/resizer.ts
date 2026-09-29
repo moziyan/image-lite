@@ -1,29 +1,25 @@
-import type { ImageResizer } from '@/services/image/interfaces'
 import type { ResizeOptions } from '@/types/image'
 
+import { createProcessCanvas, type ProcessCanvas } from './canvas'
+import type { ImageResizer } from './interfaces'
 import { calculateTargetDimensions } from './resizeCalculator'
 
 /**
  * Canvas-based ImageResizer (ARCHITECTURE.md §8).
+ * Works on the main thread and inside workers (OffscreenCanvas).
  *
- * The returned canvas is owned by the caller. The input bitmap is not closed
- * by this function — ownership stays with the caller.
+ * The input bitmap is not closed by this function — ownership stays with
+ * the caller.
  */
 export class CanvasImageResizer implements ImageResizer {
-  async resize(source: ImageBitmap, options: ResizeOptions): Promise<HTMLCanvasElement> {
+  async resize(source: ImageBitmap, options: ResizeOptions): Promise<ProcessCanvas> {
     const { width, height } = calculateTargetDimensions(
       { width: source.width, height: source.height },
       options,
     )
 
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      throw new Error('Failed to acquire 2D canvas context')
-    }
+    const canvas = createProcessCanvas(width, height)
+    const ctx = canvas.getContext()
 
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'

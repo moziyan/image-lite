@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NButton, NTag } from 'naive-ui'
+import { NButton, NProgress, NTag } from 'naive-ui'
 import { computed } from 'vue'
 
 import type { ImageItem } from '@/stores/imageQueue'
@@ -67,6 +67,15 @@ function onRemove(event: Event): void {
         {{ formatBytes(item.size) }}
         <NTag size="tiny" :type="statusType" :bordered="false">{{ statusLabel }}</NTag>
       </span>
+      <NProgress
+        v-if="item.status === 'processing'"
+        type="line"
+        :percentage="Math.round(item.progress * 100)"
+        :show-indicator="false"
+        :height="4"
+        border-radius="2px"
+        aria-label="Processing progress"
+      />
     </div>
     <NButton
       class="remove-btn"

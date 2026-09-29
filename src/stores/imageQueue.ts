@@ -1,10 +1,9 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import { toImageError } from '@/services/image/errors'
-import { imageProcessor } from '@/services/image/processor'
 import type { FileValidationError } from '@/services/image/validation'
 import { validateImageFiles } from '@/services/image/validation'
+import { imageWorkerClient, TaskCancelledError } from '@/services/image/workerClient'
 import type { EncodeOptions, ImageProcessResult, ImageStatus, ResizeOptions } from '@/types/image'
 
 export interface ImageItem {
@@ -14,6 +13,8 @@ export interface ImageItem {
   size: number
   type: string
   status: ImageStatus
+  /** 0–1 progress while status is 'processing'. */
+  progress: number
   /** Object URL for the original file preview. Revoked on removal/clear. */
   previewUrl: string
   /** Processing result, set on success. */
@@ -43,15 +44,32 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   /** True while at least one image is being processed. */
   const isProcessing = ref(false)
 
+  /** Cancel handles for in-flight tasks, keyed by item id. */
+  const activeCancels = new Map<string, () => void>()
+
   const selectedItem = computed<ImageItem | null>(
     () => items.value.find((item) => item.id === selectedId.value) ?? null,
   )
   const isEmpty = computed(() => items.value.length === 0)
   const count = computed(() => items.value.length)
   const completedItems = computed(() => items.value.filter((item) => item.status === 'completed'))
-  const pendingItems = computed(() =>
+  const processableItems = computed(() =>
     items.value.filter((item) => item.status === 'pending' || item.status === 'error'),
   )
+
+  /** Aggregate progress (0–1) across items in the current/last batch run. */
+  const aggregateProgress = computed(() => {
+    const relevant = items.value.filter(
+      (item) => item.status !== 'pending' || activeCancels.has(item.id),
+    )
+    if (relevant.length === 0) return 0
+    const total = relevant.reduce((sum, item) => {
+      if (item.status === 'completed') return sum + 1
+      if (item.status === 'processing') return sum + item.progress
+      return sum
+    }, 0)
+    return total / relevant.length
+  })
 
   function addFiles(files: readonly File[]): FileValidationError[] {
     const { accepted, rejected } = validateImageFiles(files)
@@ -65,6 +83,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
         size: file.size,
         type: file.type,
         status: 'pending',
+        progress: 0,
         previewUrl: URL.createObjectURL(file),
         result: null,
         resultUrl: null,
@@ -89,6 +108,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   }
 
   function removeItem(id: string): void {
+    cancelItem(id)
     const index = items.value.findIndex((item) => item.id === id)
     if (index === -1) return
     const [removed] = items.value.splice(index, 1)
@@ -101,6 +121,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   }
 
   function clearAll(): void {
+    cancelAll()
     for (const item of items.value) {
       releaseItemResources(item)
     }
@@ -115,12 +136,23 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     }
   }
 
-  /** Process a single image. Updates item state in place. */
+  function cancelItem(id: string): void {
+    activeCancels.get(id)?.()
+  }
+
+  function cancelAll(): void {
+    for (const cancel of activeCancels.values()) {
+      cancel()
+    }
+  }
+
+  /** Process a single image through the worker. Updates item state in place. */
   async function processItem(id: string, settings: ProcessSettings): Promise<void> {
     const item = items.value.find((candidate) => candidate.id === id)
     if (!item || item.status === 'processing') return
 
     item.status = 'processing'
+    item.progress = 0
     item.error = null
 
     // Release a previous result before reprocessing.
@@ -130,20 +162,41 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
       item.result = null
     }
 
-    try {
-      const result = await imageProcessor.process({
+    const handle = imageWorkerClient.process(
+      {
         file: item.file,
         resize: { ...settings.resize },
         output: { ...settings.output },
         metadata: { preserveExif: false },
-      })
+      },
+      item.id,
+      {
+        onProgress: (progress) => {
+          item.progress = progress
+        },
+      },
+    )
+    activeCancels.set(item.id, handle.cancel)
+
+    try {
+      const result = await handle.promise
+      // Guard: the item may have been removed while processing.
+      if (!items.value.some((candidate) => candidate.id === id)) return
       item.result = result
       item.resultUrl = URL.createObjectURL(result.blob)
       item.status = 'completed'
+      item.progress = 1
     } catch (error) {
-      const imageError = toImageError(error)
-      item.error = imageError.message
-      item.status = 'error'
+      if (!items.value.some((candidate) => candidate.id === id)) return
+      if (error instanceof TaskCancelledError) {
+        item.status = 'cancelled'
+        item.error = null
+      } else {
+        item.status = 'error'
+        item.error = error instanceof Error ? error.message : 'Processing failed.'
+      }
+    } finally {
+      activeCancels.delete(item.id)
     }
   }
 
@@ -152,7 +205,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     if (isProcessing.value) return
     isProcessing.value = true
     try {
-      for (const item of pendingItems.value) {
+      for (const item of processableItems.value) {
         await processItem(item.id, settings)
       }
     } finally {
@@ -169,11 +222,14 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     isEmpty,
     count,
     completedItems,
-    pendingItems,
+    processableItems,
+    aggregateProgress,
     addFiles,
     removeItem,
     clearAll,
     selectItem,
+    cancelItem,
+    cancelAll,
     processItem,
     processAll,
   }

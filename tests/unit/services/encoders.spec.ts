@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defaultEncoderRegistry, EncoderRegistry } from '@/services/image/encoderRegistry'
 import { JpegEncoder, normalizeQuality, PngEncoder, WebpEncoder } from '@/services/image/encoders'
@@ -51,32 +51,56 @@ describe('EncoderRegistry', () => {
 })
 
 describe('encoders (mocked canvas)', () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas
+
   beforeEach(() => {
     vi.restoreAllMocks()
   })
 
-  function mockCanvasToBlob(captured: { mimeType?: string; quality?: number }): void {
+  afterEach(() => {
+    if (originalOffscreenCanvas) {
+      Object.defineProperty(globalThis, 'OffscreenCanvas', {
+        value: originalOffscreenCanvas,
+        writable: true,
+        configurable: true,
+      })
+    }
+  })
+
+  /** happy-dom lacks canvas 2D contexts — stub the bits encoders rely on. */
+  function stubCanvas(captured: { mimeType?: string; quality?: number }): void {
+    // happy-dom defines OffscreenCanvas but its 2D context is null, so the
+    // production code must fall back to DOM canvases in tests. stubGlobal
+    // does not affect `typeof`, hence Reflect.deleteProperty.
+    Reflect.deleteProperty(globalThis, 'OffscreenCanvas')
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+      putImageData: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
-      this: HTMLCanvasElement,
       callback: BlobCallback,
       type?: string,
       quality?: number,
     ) {
       captured.mimeType = type
       captured.quality = quality
-      callback(new Blob(['fake'], { type }))
+      // happy-dom's Blob requires a string type option; build it explicitly.
+      callback(new Blob(['fake'], type ? { type } : undefined))
     })
+  }
+
+  function makeCanvas(): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.width = 10
+    canvas.height = 10
+    return canvas
   }
 
   it('JPEG encoder passes normalized quality and jpeg mime type', async () => {
     const captured: { mimeType?: string; quality?: number } = {}
-    mockCanvasToBlob(captured)
+    stubCanvas(captured)
 
-    const canvas = document.createElement('canvas')
-    canvas.width = 10
-    canvas.height = 10
-
-    const blob = await new JpegEncoder().encode(canvas, { format: 'jpeg', quality: 75 })
+    const blob = await new JpegEncoder().encode(makeCanvas(), { format: 'jpeg', quality: 75 })
     expect(captured.mimeType).toBe('image/jpeg')
     expect(captured.quality).toBe(0.75)
     expect(blob.type).toBe('image/jpeg')
@@ -84,26 +108,18 @@ describe('encoders (mocked canvas)', () => {
 
   it('PNG encoder ignores the quality option entirely', async () => {
     const captured: { mimeType?: string; quality?: number } = {}
-    mockCanvasToBlob(captured)
+    stubCanvas(captured)
 
-    const canvas = document.createElement('canvas')
-    canvas.width = 10
-    canvas.height = 10
-
-    await new PngEncoder().encode(canvas, { format: 'png', quality: 10 })
+    await new PngEncoder().encode(makeCanvas(), { format: 'png', quality: 10 })
     expect(captured.mimeType).toBe('image/png')
     expect(captured.quality).toBeUndefined()
   })
 
   it('WebP encoder uses webp mime type with quality', async () => {
     const captured: { mimeType?: string; quality?: number } = {}
-    mockCanvasToBlob(captured)
+    stubCanvas(captured)
 
-    const canvas = document.createElement('canvas')
-    canvas.width = 10
-    canvas.height = 10
-
-    await new WebpEncoder().encode(canvas, { format: 'webp', quality: 60 })
+    await new WebpEncoder().encode(makeCanvas(), { format: 'webp', quality: 60 })
     expect(captured.mimeType).toBe('image/webp')
     expect(captured.quality).toBe(0.6)
   })
