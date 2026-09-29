@@ -74,12 +74,12 @@ Legend:
 
 ## Phase 5 — Preview
 
-- [ ] 5.1 Original preview
-- [ ] 5.2 Output preview
-- [ ] 5.3 Before/After
-- [ ] 5.4 Comparison slider
-- [ ] 5.5 Debounced preview
-- [ ] 5.6 Preview resource cleanup
+- [x] 5.1 Original preview
+- [x] 5.2 Output preview
+- [x] 5.3 Before/After
+- [x] 5.4 Comparison slider
+- [x] 5.5 Debounced preview
+- [x] 5.6 Preview resource cleanup
 
 ## Phase 6 — Advanced Image Processing
 

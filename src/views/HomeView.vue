@@ -4,6 +4,7 @@ import { useMessage } from 'naive-ui'
 import AppHeader from '@/components/common/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ImageQueuePanel from '@/components/image/ImageQueuePanel.vue'
+import PreviewPanel from '@/components/preview/PreviewPanel.vue'
 import BatchSummaryBar from '@/components/result/BatchSummaryBar.vue'
 import CompressionSummary from '@/components/result/CompressionSummary.vue'
 import SettingsPanel from '@/components/settings/SettingsPanel.vue'
@@ -53,15 +54,7 @@ async function onProcessAll(): Promise<void> {
         <BatchSummaryBar class="batch-bar-row" @zip-error="(text: string) => message.error(text)" />
       </aside>
       <section class="preview-col" aria-label="Preview">
-        <div class="preview-placeholder">
-          <img
-            v-if="queue.selectedItem"
-            class="preview-image"
-            :src="queue.selectedItem.resultUrl ?? queue.selectedItem.previewUrl"
-            :alt="`Preview of ${queue.selectedItem.name}`"
-          />
-          <p v-else class="muted">Select an image to preview it.</p>
-        </div>
+        <PreviewPanel />
       </section>
       <aside class="settings-col" aria-label="Settings and results">
         <SettingsPanel @process-all="onProcessAll" />
@@ -114,28 +107,7 @@ async function onProcessAll(): Promise<void> {
 
 .preview-col {
   display: flex;
-}
-
-.preview-placeholder {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8fafc;
-  border-radius: 8px;
-  overflow: hidden;
-  min-height: 240px;
-}
-
-.preview-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.muted {
-  color: #9ca3af;
-  font-size: 14px;
+  min-height: 320px;
 }
 
 .divider {
