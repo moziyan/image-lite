@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { NAlert, NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { ZipError } from '@/services/zip/zipService'
 import { useImageQueueStore } from '@/stores/imageQueue'
 import { formatBytes } from '@/utils/bytes'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'zip-error', message: string): void
@@ -26,13 +29,21 @@ const summaryText = computed(() => {
   const s = summary.value
   if (!s) return ''
   const parts: string[] = []
-  parts.push(`${s.succeeded} succeeded`)
-  if (s.failed > 0) parts.push(`${s.failed} failed`)
-  if (s.cancelled > 0) parts.push(`${s.cancelled} cancelled`)
+  parts.push(t('batch.summarySimple', { succeeded: s.succeeded }))
+  if (s.failed > 0) parts.push(t('batch.summaryFailed', { failed: s.failed }))
+  if (s.cancelled > 0) parts.push(t('batch.summaryCancelled', { cancelled: s.cancelled }))
   if (s.succeeded > 0 && s.originalBytes > 0) {
-    const delta = `${formatBytes(s.originalBytes)} → ${formatBytes(s.outputBytes)}`
+    const original = formatBytes(s.originalBytes)
+    const output = formatBytes(s.outputBytes)
     parts.push(
-      savedPercent.value >= 0 ? `${delta} (saved ${savedPercent.value}%)` : `${delta} (grew)`,
+      savedPercent.value >= 0
+        ? t('batch.summary', {
+            succeeded: s.succeeded,
+            original,
+            output,
+            percent: savedPercent.value,
+          })
+        : t('batch.summaryGrew', { original, output }),
     )
   }
   return parts.join(' · ')
@@ -50,10 +61,7 @@ async function downloadZip(): Promise<void> {
   try {
     await queue.downloadAllAsZip()
   } catch (error) {
-    const text =
-      error instanceof ZipError
-        ? error.message
-        : 'Failed to build the ZIP archive. Please try again.'
+    const text = error instanceof ZipError ? error.message : t('batch.zipError')
     emit('zip-error', text)
   } finally {
     downloading.value = false
@@ -62,7 +70,7 @@ async function downloadZip(): Promise<void> {
 </script>
 
 <template>
-  <div v-if="queue.completedItems.length > 0" class="batch-bar" aria-label="Batch summary">
+  <div v-if="queue.completedItems.length > 0" class="batch-bar" :aria-label="t('batch.title')">
     <NAlert v-if="summary" :type="alertType" :bordered="false" class="batch-alert">
       {{ summaryText }}
     </NAlert>
@@ -73,7 +81,7 @@ async function downloadZip(): Promise<void> {
       :disabled="queue.completedItems.length === 0"
       @click="downloadZip"
     >
-      Download all (ZIP)
+      {{ t('batch.downloadZip') }}
     </NButton>
   </div>
 </template>

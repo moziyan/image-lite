@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { NButton, NProgress, NTag } from 'naive-ui'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import type { ImageItem } from '@/stores/imageQueue'
 import { formatBytes } from '@/utils/bytes'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   item: ImageItem
@@ -14,14 +17,6 @@ const emit = defineEmits<{
   select: [id: string]
   remove: [id: string]
 }>()
-
-const STATUS_LABELS: Record<ImageItem['status'], string> = {
-  pending: 'Pending',
-  processing: 'Processing',
-  completed: 'Done',
-  error: 'Error',
-  cancelled: 'Cancelled',
-}
 
 const STATUS_TYPES: Record<
   ImageItem['status'],
@@ -34,7 +29,7 @@ const STATUS_TYPES: Record<
   cancelled: 'warning',
 }
 
-const statusLabel = computed(() => STATUS_LABELS[props.item.status])
+const statusLabel = computed(() => t(`queue.status.${props.item.status}`))
 
 const statusType = computed(() => STATUS_TYPES[props.item.status])
 
@@ -54,13 +49,18 @@ function onRemove(event: Event): void {
     :class="{ selected }"
     role="button"
     tabindex="0"
-    :aria-label="`Select ${item.name}`"
+    :aria-label="t('queue.select', { name: item.name })"
     :aria-pressed="selected"
     @click="onSelect"
     @keydown.enter.prevent="onSelect"
     @keydown.space.prevent="onSelect"
   >
-    <img class="thumb" :src="item.previewUrl" :alt="`Preview of ${item.name}`" loading="lazy" />
+    <img
+      class="thumb"
+      :src="item.previewUrl"
+      :alt="t('queue.previewAlt', { name: item.name })"
+      loading="lazy"
+    />
     <div class="meta">
       <span class="filename" :title="item.name">{{ item.name }}</span>
       <span class="details">
@@ -74,7 +74,7 @@ function onRemove(event: Event): void {
         :show-indicator="false"
         :height="4"
         border-radius="2px"
-        aria-label="Processing progress"
+        :aria-label="t('queue.progress')"
       />
     </div>
     <NButton
@@ -82,7 +82,7 @@ function onRemove(event: Event): void {
       quaternary
       circle
       size="small"
-      :aria-label="`Remove ${item.name}`"
+      :aria-label="t('queue.remove', { name: item.name })"
       @click="onRemove"
     >
       ✕
@@ -103,16 +103,16 @@ function onRemove(event: Event): void {
 }
 
 .image-card:hover {
-  background: #f1f5f9;
+  background: var(--surface-hover);
 }
 
 .image-card:focus-visible {
-  box-shadow: 0 0 0 2px rgba(24, 160, 88, 0.4);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .image-card.selected {
-  background: #f0fdf7;
-  border-color: #18a058;
+  background: var(--surface-active);
+  border-color: var(--accent);
 }
 
 .thumb {
@@ -120,7 +120,7 @@ function onRemove(event: Event): void {
   height: 48px;
   object-fit: cover;
   border-radius: 6px;
-  background: #e5e7eb;
+  background: var(--border);
   flex-shrink: 0;
 }
 
@@ -134,7 +134,7 @@ function onRemove(event: Event): void {
 .filename {
   font-size: 13px;
   font-weight: 500;
-  color: #111827;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -145,11 +145,11 @@ function onRemove(event: Event): void {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .remove-btn {
   flex-shrink: 0;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 </style>

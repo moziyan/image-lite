@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 import UploadZone from '@/components/upload/UploadZone.vue'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   filesSelected: [files: File[]]
@@ -9,17 +13,14 @@ const emit = defineEmits<{
 <template>
   <div class="empty-state">
     <section class="intro">
-      <h1 class="headline">Compress images without uploading them</h1>
-      <p class="subhead">
-        Resize, re-encode and convert JPEG, PNG and WebP images — entirely in your browser. Your
-        images never leave your device.
-      </p>
+      <h1 class="headline">{{ t('empty.headline') }}</h1>
+      <p class="subhead">{{ t('empty.subhead') }}</p>
     </section>
     <UploadZone @files-selected="emit('filesSelected', $event)" />
     <ul class="assurances" role="list">
-      <li>🔒 100% local processing</li>
-      <li>📦 Batch compression</li>
-      <li>🗜️ JPEG · PNG · WebP</li>
+      <li>{{ t('empty.local') }}</li>
+      <li>{{ t('empty.batch') }}</li>
+      <li>{{ t('empty.formats') }}</li>
     </ul>
   </div>
 </template>
@@ -43,14 +44,14 @@ const emit = defineEmits<{
   font-size: clamp(24px, 4vw, 34px);
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: #111827;
+  color: var(--text);
 }
 
 .subhead {
   margin: 0;
   font-size: 15px;
   line-height: 1.6;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .assurances {
@@ -62,6 +63,6 @@ const emit = defineEmits<{
   margin: 0;
   padding: 0;
   font-size: 13px;
-  color: #374151;
+  color: var(--text-secondary);
 }
 </style>

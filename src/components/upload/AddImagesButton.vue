@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { NButton } from 'naive-ui'
 import { ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   filesSelected: [files: File[]]
@@ -26,7 +29,7 @@ function onInputChange(event: Event): void {
 </script>
 
 <template>
-  <NButton tertiary size="small" @click="openFilePicker"> Add images </NButton>
+  <NButton tertiary size="small" @click="openFilePicker">{{ t('header.addImages') }}</NButton>
   <input
     :id="inputId"
     ref="fileInput"

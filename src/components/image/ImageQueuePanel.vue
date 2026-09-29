@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { NScrollbar } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import { useImageQueueStore } from '@/stores/imageQueue'
 
 import ImageCard from './ImageCard.vue'
 
+const { t } = useI18n()
 const queue = useImageQueueStore()
 </script>
 
 <template>
-  <section class="queue-panel" aria-label="Image queue">
+  <section class="queue-panel" :aria-label="t('queue.title')">
     <h2 class="panel-title">
-      Images <span class="count">{{ queue.count }}</span>
+      {{ t('queue.title') }} <span class="count">{{ queue.count }}</span>
     </h2>
     <NScrollbar class="queue-scroll">
       <ul class="queue-list" role="list">
@@ -45,15 +47,15 @@ const queue = useImageQueueStore()
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .count {
-  background: #e5e7eb;
+  background: var(--border);
   border-radius: 999px;
   padding: 1px 8px;
   font-size: 12px;
-  color: #374151;
+  color: var(--text-secondary);
 }
 
 .queue-scroll {

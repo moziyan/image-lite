@@ -102,15 +102,15 @@ Legend:
 
 ## Phase 8 — UX / Accessibility / i18n
 
-- [ ] 8.1 Keyboard navigation
-- [ ] 8.2 ARIA labels
-- [ ] 8.3 Focus management
-- [ ] 8.4 Error announcements
-- [ ] 8.5 Chinese locale
-- [ ] 8.6 English locale
-- [ ] 8.7 Japanese locale
-- [ ] 8.8 Theme support
-- [ ] 8.9 Mobile polish
+- [x] 8.1 Keyboard navigation
+- [x] 8.2 ARIA labels
+- [x] 8.3 Focus management
+- [x] 8.4 Error announcements
+- [x] 8.5 Chinese locale
+- [x] 8.6 English locale
+- [x] 8.7 Japanese locale
+- [x] 8.8 Theme support
+- [x] 8.9 Mobile polish
 
 ## Phase 9 — Performance
 

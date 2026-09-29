@@ -12,11 +12,13 @@ import {
   NSpin,
 } from 'naive-ui'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useImageQueueStore } from '@/stores/imageQueue'
 import { useSettingsStore } from '@/stores/settings'
 import type { OutputFormat } from '@/types/image'
 
+const { t } = useI18n()
 const settings = useSettingsStore()
 const queue = useImageQueueStore()
 
@@ -56,41 +58,43 @@ const targetSizeEnabled = computed({
 </script>
 
 <template>
-  <section class="settings-panel" aria-label="Compression settings">
-    <h2 class="panel-title">Settings</h2>
+  <section class="settings-panel" :aria-label="t('settings.title')">
+    <h2 class="panel-title">{{ t('settings.title') }}</h2>
     <NSpin :show="queue.isProcessing">
       <NForm label-placement="top" size="small">
-        <NFormItem label="Resize">
+        <NFormItem :label="t('settings.resize')">
           <div class="resize-inputs">
             <NInputNumber
               v-model:value="settings.resize.width"
-              placeholder="Width"
+              :placeholder="t('settings.widthPlaceholder')"
               :min="1"
               :max="100000"
               clearable
-              aria-label="Target width in pixels"
+              :aria-label="t('settings.widthLabel')"
             />
             <span class="times">×</span>
             <NInputNumber
               v-model:value="settings.resize.height"
-              placeholder="Height"
+              :placeholder="t('settings.heightPlaceholder')"
               :min="1"
               :max="100000"
               clearable
-              aria-label="Target height in pixels"
+              :aria-label="t('settings.heightLabel')"
             />
           </div>
         </NFormItem>
         <NFormItem>
           <NCheckbox v-model:checked="settings.resize.maintainAspectRatio">
-            Keep aspect ratio
+            {{ t('settings.keepAspect') }}
           </NCheckbox>
         </NFormItem>
         <NFormItem>
-          <NCheckbox v-model:checked="settings.resize.allowUpscale"> Allow upscaling </NCheckbox>
+          <NCheckbox v-model:checked="settings.resize.allowUpscale">
+            {{ t('settings.allowUpscale') }}
+          </NCheckbox>
         </NFormItem>
 
-        <NFormItem label="Output format">
+        <NFormItem :label="t('settings.outputFormat')">
           <NRadioGroup
             :value="settings.output.format"
             @update:value="settings.setFormat($event as OutputFormat)"
@@ -105,31 +109,34 @@ const targetSizeEnabled = computed({
           </NRadioGroup>
         </NFormItem>
         <p v-if="!settings.isFormatAvailable('avif')" class="format-note">
-          AVIF encoding is not supported by this browser.
+          {{ t('settings.avifUnsupported') }}
         </p>
 
-        <NFormItem v-if="settings.qualityApplicable" :label="`Quality: ${qualityValue}`">
+        <NFormItem
+          v-if="settings.qualityApplicable"
+          :label="t('settings.quality', { value: qualityValue })"
+        >
           <NSlider
             v-model:value="qualityValue"
             :min="1"
             :max="100"
             :step="1"
             :marks="{ 1: '1', 50: '50', 100: '100' }"
-            aria-label="Compression quality"
+            :aria-label="t('settings.qualityLabel')"
           />
         </NFormItem>
-        <p v-else class="png-note">PNG is lossless — quality does not apply.</p>
+        <p v-else class="png-note">{{ t('settings.pngLossless') }}</p>
 
         <NFormItem>
           <NCheckbox
             :checked="settings.preserveMetadata"
             @update:checked="settings.setPreserveMetadata($event)"
           >
-            Preserve metadata (EXIF)
+            {{ t('settings.preserveMetadata') }}
           </NCheckbox>
         </NFormItem>
         <p v-if="settings.preserveMetadata" class="format-note">
-          Best effort only: canvas re-encoding strips most metadata in current browsers.
+          {{ t('settings.metadataNote') }}
         </p>
 
         <NFormItem>
@@ -137,26 +144,28 @@ const targetSizeEnabled = computed({
             v-model:checked="targetSizeEnabled"
             :disabled="settings.output.format === 'png'"
           >
-            Target file size
+            {{ t('settings.targetSize') }}
           </NCheckbox>
         </NFormItem>
         <template v-if="settings.targetSizeApplicable">
-          <NFormItem label="Target (KB)">
+          <NFormItem :label="t('settings.targetKB')">
             <NInputNumber
               v-model:value="targetKB"
               :min="1"
               :max="102400"
               :step="50"
-              aria-label="Target file size in kilobytes"
+              :aria-label="t('settings.targetKBLabel')"
             />
           </NFormItem>
-          <NFormItem :label="`Min quality: ${settings.targetSize.minimumQuality}`">
+          <NFormItem
+            :label="t('settings.minQuality', { value: settings.targetSize.minimumQuality })"
+          >
             <NSlider
               :value="settings.targetSize.minimumQuality"
               :min="1"
               :max="100"
               :step="1"
-              aria-label="Minimum quality for target-size search"
+              :aria-label="t('settings.minQualityLabel')"
               @update:value="settings.setTargetSize({ minimumQuality: $event })"
             />
           </NFormItem>
@@ -165,16 +174,15 @@ const targetSizeEnabled = computed({
               :checked="settings.targetSize.allowResize"
               @update:checked="settings.setTargetSize({ allowResize: $event })"
             >
-              Allow reducing dimensions
+              {{ t('settings.allowReduceDims') }}
             </NCheckbox>
           </NFormItem>
           <p class="format-note">
-            Best effort: quality is searched, then dimensions reduced if needed. Exact size is not
-            guaranteed.
+            {{ t('settings.targetNote') }}
           </p>
         </template>
         <p v-else-if="targetSizeEnabled && settings.output.format === 'png'" class="format-note">
-          PNG is lossless — target size applies to JPEG / WebP / AVIF only.
+          {{ t('settings.targetPngNote') }}
         </p>
 
         <NButton
@@ -184,18 +192,15 @@ const targetSizeEnabled = computed({
           :disabled="!canProcess"
           @click="emit('processAll')"
         >
-          Compress
-          {{
-            queue.processableItems.length > 1 ? `${queue.processableItems.length} images` : 'image'
-          }}
+          {{ t('settings.compress', queue.processableItems.length) }}
         </NButton>
         <div v-else class="processing-actions">
           <NProgress
             type="line"
             :percentage="Math.round(queue.aggregateProgress * 100)"
-            aria-label="Overall progress"
+            :aria-label="t('settings.overallProgress')"
           />
-          <NButton block @click="queue.cancelAll()"> Cancel </NButton>
+          <NButton block @click="queue.cancelAll()">{{ t('settings.cancel') }}</NButton>
         </div>
       </NForm>
     </NSpin>
@@ -215,7 +220,7 @@ const targetSizeEnabled = computed({
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .resize-inputs {
@@ -230,20 +235,20 @@ const targetSizeEnabled = computed({
 }
 
 .times {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .png-note {
   margin: 0 0 12px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .format-note {
   margin: -6px 0 10px;
   font-size: 12px;
   line-height: 1.4;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .processing-actions {

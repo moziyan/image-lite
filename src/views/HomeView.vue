@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMessage } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import AppHeader from '@/components/common/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -11,6 +12,7 @@ import SettingsPanel from '@/components/settings/SettingsPanel.vue'
 import { useImageQueueStore } from '@/stores/imageQueue'
 import { useSettingsStore } from '@/stores/settings'
 
+const { t } = useI18n()
 const queue = useImageQueueStore()
 const settings = useSettingsStore()
 const message = useMessage()
@@ -18,9 +20,9 @@ const message = useMessage()
 function onFilesSelected(files: File[]): void {
   const rejected = queue.addFiles(files)
   if (rejected.length === 1) {
-    message.error(rejected[0]!.message)
+    message.error(t('messages.rejectedOne', { message: rejected[0]!.message }))
   } else if (rejected.length > 1) {
-    message.error(`${rejected.length} files were rejected. Check format and size limits.`)
+    message.error(t('messages.rejectedMany', { count: rejected.length }))
   }
 }
 
@@ -34,14 +36,17 @@ async function onProcessAll(): Promise<void> {
   const summary = queue.lastBatchSummary
   if (!summary) return
   if (summary.succeeded === 0 && summary.failed > 0) {
-    message.error(`All ${summary.failed} image(s) failed to process.`)
+    message.error(t('messages.allFailed', { count: summary.failed }))
   } else if (summary.failed > 0 || summary.cancelled > 0) {
     const parts: string[] = []
-    if (summary.failed > 0) parts.push(`${summary.failed} failed`)
-    if (summary.cancelled > 0) parts.push(`${summary.cancelled} cancelled`)
-    message.warning(`Batch finished: ${summary.succeeded} succeeded, ${parts.join(', ')}.`)
+    if (summary.failed > 0) parts.push(t('messages.failedSuffix', { count: summary.failed }))
+    if (summary.cancelled > 0)
+      parts.push(t('messages.cancelledSuffix', { count: summary.cancelled }))
+    message.warning(
+      t('messages.batchPartial', { succeeded: summary.succeeded, rest: parts.join(', ') }),
+    )
   } else {
-    message.success('Done! All images processed.')
+    message.success(t('messages.batchDone'))
   }
 }
 </script>
@@ -55,10 +60,10 @@ async function onProcessAll(): Promise<void> {
         <ImageQueuePanel />
         <BatchSummaryBar class="batch-bar-row" @zip-error="(text: string) => message.error(text)" />
       </aside>
-      <section class="preview-col" aria-label="Preview">
+      <section class="preview-col" :aria-label="t('preview.title')">
         <PreviewPanel />
       </section>
-      <aside class="settings-col" aria-label="Settings and results">
+      <aside class="settings-col" :aria-label="t('settings.title')">
         <SettingsPanel @process-all="onProcessAll" />
         <hr v-if="queue.selectedItem" class="divider" />
         <CompressionSummary v-if="queue.selectedItem" :item="queue.selectedItem" />
@@ -87,8 +92,8 @@ async function onProcessAll(): Promise<void> {
 .settings-col,
 .preview-col {
   min-height: 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
 }
@@ -114,7 +119,7 @@ async function onProcessAll(): Promise<void> {
 
 .divider {
   border: none;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
   margin: 16px 0;
 }
 

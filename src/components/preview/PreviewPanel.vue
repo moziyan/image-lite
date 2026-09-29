@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NButton, NSpin } from 'naive-ui'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import BeforeAfter from '@/components/preview/BeforeAfter.vue'
 import { usePreview } from '@/composables/usePreview'
@@ -8,6 +9,7 @@ import { useImageQueueStore } from '@/stores/imageQueue'
 import { useSettingsStore } from '@/stores/settings'
 import { formatBytes } from '@/utils/bytes'
 
+const { t } = useI18n()
 const queue = useImageQueueStore()
 const settings = useSettingsStore()
 
@@ -43,17 +45,17 @@ const savedPercent = computed(() => {
 </script>
 
 <template>
-  <div class="preview-panel" aria-label="Preview">
+  <div class="preview-panel" :aria-label="t('preview.title')">
     <template v-if="selectedItem">
       <div class="toolbar">
-        <div class="mode-switch" role="group" aria-label="Preview mode">
+        <div class="mode-switch" role="group" :aria-label="t('preview.mode')">
           <NButton
             size="tiny"
             :type="mode === 'preview' ? 'primary' : 'default'"
             :ghost="mode !== 'preview'"
             @click="showCompare = false"
           >
-            Live preview
+            {{ t('preview.live') }}
           </NButton>
           <NButton
             size="tiny"
@@ -62,7 +64,7 @@ const savedPercent = computed(() => {
             :disabled="!canCompare"
             @click="showCompare = true"
           >
-            Before / After
+            {{ t('preview.compare') }}
           </NButton>
         </div>
         <span v-if="mode === 'preview' && previewResult" class="preview-meta">
@@ -86,14 +88,14 @@ const savedPercent = computed(() => {
               v-if="previewUrl"
               class="live-preview"
               :src="previewUrl"
-              :alt="`Live preview of ${selectedItem.name}`"
+              :alt="t('preview.liveAlt', { name: selectedItem.name })"
             />
             <p v-else-if="error" class="preview-error" role="alert">{{ error }}</p>
             <img
               v-else-if="!isLoading"
               class="live-preview"
               :src="selectedItem.previewUrl"
-              :alt="`Original: ${selectedItem.name}`"
+              :alt="t('preview.originalAlt', { name: selectedItem.name })"
             />
             <div v-else class="preview-placeholder" aria-hidden="true" />
           </template>
@@ -101,7 +103,7 @@ const savedPercent = computed(() => {
       </div>
     </template>
     <div v-else class="empty">
-      <p class="muted">Select an image to preview it.</p>
+      <p class="muted">{{ t('preview.selectPrompt') }}</p>
     </div>
   </div>
 </template>
@@ -129,7 +131,7 @@ const savedPercent = computed(() => {
 
 .preview-meta {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -149,7 +151,7 @@ const savedPercent = computed(() => {
   height: 100%;
   object-fit: contain;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
 
 .preview-placeholder {
@@ -157,14 +159,14 @@ const savedPercent = computed(() => {
   height: 100%;
   min-height: 240px;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
 
 .preview-error {
   margin: 0;
   padding: 16px;
   font-size: 13px;
-  color: #d03050;
+  color: var(--danger);
 }
 
 .empty {
@@ -172,13 +174,13 @@ const savedPercent = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: var(--surface-muted);
   border-radius: 8px;
   min-height: 240px;
 }
 
 .muted {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 14px;
 }
 </style>

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   originalUrl: string
@@ -76,20 +79,25 @@ function onKeydown(event: KeyboardEvent): void {
     class="before-after"
     :class="{ dragging }"
     role="group"
-    :aria-label="`Before and after comparison of ${props.name}`"
+    :aria-label="t('preview.compareLabel', { name: props.name })"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
   >
     <!-- Original (base layer, left of the divider) -->
-    <img class="layer" :src="originalUrl" :alt="`Original: ${props.name}`" draggable="false" />
+    <img
+      class="layer"
+      :src="originalUrl"
+      :alt="t('preview.originalAlt', { name: props.name })"
+      draggable="false"
+    />
     <!-- Processed (clipped layer, right of the divider) -->
     <img
       class="layer clipped"
       :style="clipStyle"
       :src="resultUrl"
-      :alt="`Compressed: ${props.name}`"
+      :alt="t('preview.compressedAlt', { name: props.name })"
       draggable="false"
     />
 
@@ -104,13 +112,13 @@ function onKeydown(event: KeyboardEvent): void {
       min="2"
       max="98"
       :value="position"
-      aria-label="Comparison divider position"
+      :aria-label="t('preview.dividerLabel')"
       @input="position = Number(($event.target as HTMLInputElement).value)"
       @keydown="onKeydown"
     />
 
-    <span class="badge before" aria-hidden="true">Before</span>
-    <span class="badge after" aria-hidden="true">After</span>
+    <span class="badge before" aria-hidden="true">{{ t('preview.before') }}</span>
+    <span class="badge after" aria-hidden="true">{{ t('preview.after') }}</span>
   </div>
 </template>
 
@@ -121,7 +129,7 @@ function onKeydown(event: KeyboardEvent): void {
   height: 100%;
   overflow: hidden;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--surface-muted);
   cursor: ew-resize;
   touch-action: none;
   user-select: none;
@@ -137,7 +145,7 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 .clipped {
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
 
 .divider {
@@ -146,7 +154,7 @@ function onKeydown(event: KeyboardEvent): void {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: #18a058;
+  background: var(--accent);
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -161,15 +169,15 @@ function onKeydown(event: KeyboardEvent): void {
   height: 36px;
   margin-left: -11px;
   border-radius: 6px;
-  background: #18a058;
-  color: #fff;
+  background: var(--accent);
+  color: var(--surface);
   font-size: 12px;
   letter-spacing: -2px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .dragging .handle {
-  background: #0e9f5b;
+  background: var(--accent);
 }
 
 /* The range input is visually transparent but focusable and clickable. */
@@ -201,7 +209,7 @@ function onKeydown(event: KeyboardEvent): void {
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #fff;
+  color: var(--surface);
   background: rgba(17, 24, 39, 0.65);
   pointer-events: none;
 }

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { NButton, NStatistic } from 'naive-ui'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { downloadBlob, buildOutputFileName } from '@/services/download/downloadService'
 import type { ImageItem } from '@/stores/imageQueue'
 import { formatBytes } from '@/utils/bytes'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   item: ImageItem
@@ -22,9 +25,9 @@ const increased = computed(() => result.value !== null && result.value.compressi
 const summaryText = computed(() => {
   if (!result.value) return ''
   if (increased.value) {
-    return `File increased by ${Math.abs(savedPercent.value)}%`
+    return t('result.increased', { percent: Math.abs(savedPercent.value) })
   }
-  return `Saved ${savedPercent.value}%`
+  return t('result.saved', { percent: savedPercent.value })
 })
 
 function download(): void {
@@ -35,11 +38,11 @@ function download(): void {
 </script>
 
 <template>
-  <section v-if="result" class="summary" aria-label="Compression result">
+  <section v-if="result" class="summary" :aria-label="t('result.title')">
     <div class="stats">
-      <NStatistic label="Original" :value="formatBytes(result.originalSize)" />
-      <NStatistic label="Output" :value="formatBytes(result.size)" />
-      <NStatistic label="Dimensions" :value="`${result.width}×${result.height}`" />
+      <NStatistic :label="t('result.original')" :value="formatBytes(result.originalSize)" />
+      <NStatistic :label="t('result.output')" :value="formatBytes(result.size)" />
+      <NStatistic :label="t('result.dimensions')" :value="`${result.width}×${result.height}`" />
     </div>
     <p class="verdict" :class="{ increased }">{{ summaryText }}</p>
     <p
@@ -48,16 +51,16 @@ function download(): void {
       :class="{ unmet: !result.targetSize.metTarget }"
     >
       <template v-if="result.targetSize.metTarget">
-        Target size met ({{ result.targetSize.attempts }} attempt{{
-          result.targetSize.attempts === 1 ? '' : 's'
-        }}).
+        {{ t('result.targetMet', { attempts: result.targetSize.attempts }) }}
       </template>
-      <template v-else> {{ result.targetSize.note ?? 'Target size not reachable.' }} </template>
+      <template v-else> {{ result.targetSize.note ?? t('result.targetUnmetFallback') }} </template>
     </p>
-    <NButton size="small" secondary type="primary" @click="download"> Download </NButton>
+    <NButton size="small" secondary type="primary" @click="download">
+      {{ t('result.download') }}
+    </NButton>
   </section>
   <p v-else-if="item.status === 'error'" class="error-text" role="alert">
-    {{ item.error ?? 'Processing failed.' }}
+    {{ item.error ?? t('result.processFailed') }}
   </p>
 </template>
 
@@ -78,26 +81,26 @@ function download(): void {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #18a058;
+  color: var(--accent);
 }
 
 .verdict.increased {
-  color: #d03050;
+  color: var(--danger);
 }
 
 .target-note {
   margin: 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .target-note.unmet {
-  color: #b45309;
+  color: var(--warning);
 }
 
 .error-text {
   margin: 0;
   font-size: 13px;
-  color: #d03050;
+  color: var(--danger);
 }
 </style>

@@ -3,7 +3,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import UploadZone from '@/components/upload/UploadZone.vue'
+import { i18n } from '@/locales'
 import { useImageQueueStore } from '@/stores/imageQueue'
+
+const global = { plugins: [i18n] }
 
 function makeFile(name: string, type: string, size = 1024): File {
   return new File([new Uint8Array(size)], name, { type })
@@ -15,7 +18,7 @@ describe('UploadZone', () => {
   })
 
   it('emits filesSelected when files are chosen via the input', async () => {
-    const wrapper = mount(UploadZone)
+    const wrapper = mount(UploadZone, { global })
     const input = wrapper.find('input[type="file"]')
     const files = [makeFile('a.jpg', 'image/jpeg')]
 
@@ -31,7 +34,7 @@ describe('UploadZone', () => {
   })
 
   it('emits filesSelected on drop', async () => {
-    const wrapper = mount(UploadZone)
+    const wrapper = mount(UploadZone, { global })
     const files = [makeFile('b.png', 'image/png')]
 
     await wrapper.trigger('drop', {
@@ -44,7 +47,7 @@ describe('UploadZone', () => {
   })
 
   it('is keyboard accessible', () => {
-    const wrapper = mount(UploadZone)
+    const wrapper = mount(UploadZone, { global })
     const zone = wrapper.find('.upload-zone')
     expect(zone.attributes('role')).toBe('button')
     expect(zone.attributes('tabindex')).toBe('0')

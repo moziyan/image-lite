@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   filesSelected: [files: File[]]
@@ -61,7 +64,7 @@ function onDrop(event: DragEvent): void {
     :class="{ dragging: isDragging }"
     role="button"
     tabindex="0"
-    aria-label="Upload images. Click to browse or drop files here."
+    :aria-label="t('upload.zoneLabel')"
     @click="openFilePicker"
     @keydown.enter.prevent="openFilePicker"
     @keydown.space.prevent="openFilePicker"
@@ -97,22 +100,22 @@ function onDrop(event: DragEvent): void {
         <line x1="12" y1="3" x2="12" y2="15" />
       </svg>
       <p class="upload-title">
-        <template v-if="isDragging">Drop images to add them</template>
-        <template v-else>Drop images here, or click to browse</template>
+        <template v-if="isDragging">{{ t('upload.dropActive') }}</template>
+        <template v-else>{{ t('upload.dropIdle') }}</template>
       </p>
-      <p class="upload-hint">JPEG, PNG or WebP · up to 100 MB each · processed locally</p>
+      <p class="upload-hint">{{ t('upload.hint') }}</p>
     </div>
   </div>
 </template>
 
 <style scoped>
 .upload-zone {
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed var(--border-strong);
   border-radius: 12px;
   padding: 40px 24px;
   text-align: center;
   cursor: pointer;
-  background: #f8fafc;
+  background: var(--surface-muted);
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -121,17 +124,17 @@ function onDrop(event: DragEvent): void {
 
 .upload-zone:hover,
 .upload-zone:focus-visible {
-  border-color: #18a058;
-  background: #f0fdf7;
+  border-color: var(--accent);
+  background: var(--surface-active);
 }
 
 .upload-zone:focus-visible {
-  box-shadow: 0 0 0 3px rgba(24, 160, 88, 0.25);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .upload-zone.dragging {
-  border-color: #18a058;
-  background: #dcfce7;
+  border-color: var(--accent);
+  background: var(--surface-active);
 }
 
 .upload-content {
@@ -141,7 +144,7 @@ function onDrop(event: DragEvent): void {
 .upload-icon {
   width: 44px;
   height: 44px;
-  color: #18a058;
+  color: var(--accent);
   margin-bottom: 12px;
 }
 
@@ -149,13 +152,13 @@ function onDrop(event: DragEvent): void {
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text);
 }
 
 .upload-hint {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .visually-hidden {

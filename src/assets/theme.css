@@ -1,0 +1,50 @@
+/**
+ * Theme surface variables. Components reference these instead of
+ * hard-coded light colors so dark mode only needs to flip the variables.
+ */
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-hover: #f1f5f9;
+  --surface-active: #f0fdf7;
+  --border: #e5e7eb;
+  --border-strong: #cbd5e1;
+  --text: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --accent: #18a058;
+  --accent-soft: rgba(24, 160, 88, 0.25);
+  --danger: #d03050;
+  --warning: #b45309;
+  color-scheme: light;
+}
+
+html.dark {
+  --surface: #1f2937;
+  --surface-muted: #111827;
+  --surface-hover: #273449;
+  --surface-active: #0f2f22;
+  --border: #374151;
+  --border-strong: #4b5563;
+  --text: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --text-faint: #6b7280;
+  --accent: #36ad6a;
+  --accent-soft: rgba(54, 173, 106, 0.35);
+  --danger: #e88080;
+  --warning: #e2b53e;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
