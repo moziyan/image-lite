@@ -1,6 +1,6 @@
 import type { OutputFormat } from '@/types/image'
 
-import { JpegEncoder, PngEncoder, WebpEncoder } from './encoders'
+import { AvifEncoder, JpegEncoder, PngEncoder, WebpEncoder } from './encoders'
 import { ImageError } from './errors'
 import type { ImageEncoder } from './interfaces'
 
@@ -13,7 +13,12 @@ export class EncoderRegistry {
   private readonly encoders: ImageEncoder[]
 
   constructor(encoders?: ImageEncoder[]) {
-    this.encoders = encoders ?? [new JpegEncoder(), new PngEncoder(), new WebpEncoder()]
+    this.encoders = encoders ?? [
+      new JpegEncoder(),
+      new PngEncoder(),
+      new WebpEncoder(),
+      new AvifEncoder(),
+    ]
   }
 
   register(encoder: ImageEncoder): void {

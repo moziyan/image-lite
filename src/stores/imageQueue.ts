@@ -34,6 +34,8 @@ export interface ImageItem {
 export interface ProcessSettings {
   resize: ResizeOptions
   output: EncodeOptions
+  /** Best-effort metadata preservation request (default: strip). */
+  preserveMetadata?: boolean
 }
 
 /** Outcome of the most recent batch run. Null until a run finishes. */
@@ -193,7 +195,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
         file: item.file,
         resize: { ...settings.resize },
         output: { ...settings.output },
-        metadata: { preserveExif: false },
+        metadata: { preserveExif: settings.preserveMetadata ?? false },
       },
       item.id,
       {

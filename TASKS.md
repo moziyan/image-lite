@@ -83,12 +83,12 @@ Legend:
 
 ## Phase 6 — Advanced Image Processing
 
-- [ ] 6.1 EXIF orientation
-- [ ] 6.2 Metadata policy
-- [ ] 6.3 AVIF adapter
-- [ ] 6.4 WASM encoder abstraction if needed
-- [ ] 6.5 Encoder capability detection
-- [ ] 6.6 Browser fallback behavior
+- [x] 6.1 EXIF orientation
+- [x] 6.2 Metadata policy
+- [x] 6.3 AVIF adapter
+- [x] 6.4 WASM encoder abstraction if needed
+- [x] 6.5 Encoder capability detection
+- [x] 6.6 Browser fallback behavior
 
 ## Phase 7 — Target Size
 

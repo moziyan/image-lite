@@ -28,6 +28,7 @@ async function onProcessAll(): Promise<void> {
   await queue.processAll({
     resize: { ...settings.resize },
     output: { ...settings.output },
+    preserveMetadata: settings.preserveMetadata,
   })
   const summary = queue.lastBatchSummary
   if (!summary) return

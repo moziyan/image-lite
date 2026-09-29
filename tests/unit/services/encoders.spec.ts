@@ -31,7 +31,7 @@ describe('EncoderRegistry', () => {
   })
 
   it('throws a typed error for unregistered formats', () => {
-    const registry = new EncoderRegistry()
+    const registry = new EncoderRegistry([]) // empty registry: nothing registered
     expect(() => registry.resolve('avif')).toThrowError(/avif/)
   })
 
@@ -40,13 +40,13 @@ describe('EncoderRegistry', () => {
       supports: (format) => format === 'avif',
       encode: () => Promise.resolve(new Blob(['x'], { type: 'image/avif' })),
     }
-    const registry = new EncoderRegistry()
+    const registry = new EncoderRegistry([])
     registry.register(fakeAvif)
     expect(registry.resolve('avif')).toBe(fakeAvif)
   })
 
   it('lists supported formats', () => {
-    expect(defaultEncoderRegistry.supportedFormats()).toEqual(['jpeg', 'png', 'webp'])
+    expect(defaultEncoderRegistry.supportedFormats()).toEqual(['jpeg', 'png', 'webp', 'avif'])
   })
 })
 
@@ -130,5 +130,41 @@ describe('encoders (mocked canvas)', () => {
     expect(new PngEncoder().supports('png')).toBe(true)
     expect(new WebpEncoder().supports('webp')).toBe(true)
     expect(new WebpEncoder().supports('avif')).toBe(false)
+  })
+})
+
+describe('AvifEncoder', () => {
+  it('is registered in the default registry', async () => {
+    const { AvifEncoder } = await import('@/services/image/encoders')
+    expect(defaultEncoderRegistry.resolve('avif')).toBeInstanceOf(AvifEncoder)
+    expect(defaultEncoderRegistry.supportedFormats()).toEqual(['jpeg', 'png', 'webp', 'avif'])
+  })
+
+  it('declares support for avif only', async () => {
+    const { AvifEncoder } = await import('@/services/image/encoders')
+    const encoder = new AvifEncoder()
+    expect(encoder.supports('avif')).toBe(true)
+    expect(encoder.supports('webp')).toBe(false)
+  })
+
+  it('throws ENCODE_FAILED when the browser cannot encode AVIF', async () => {
+    const { AvifEncoder } = await import('@/services/image/encoders')
+    // Canvas that always returns PNG (silent fallback) must be detected.
+    vi.restoreAllMocks()
+    Reflect.deleteProperty(globalThis, 'OffscreenCanvas')
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+      putImageData: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback: BlobCallback) => {
+      callback(new Blob(['fake'], { type: 'image/png' }))
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = 10
+    canvas.height = 10
+    await expect(new AvifEncoder().encode(canvas, { format: 'avif' })).rejects.toMatchObject({
+      name: 'ImageError',
+      code: 'ENCODE_FAILED',
+    })
   })
 })

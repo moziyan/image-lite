@@ -56,7 +56,16 @@ async function encodeCanvas(
 ): Promise<Blob> {
   try {
     const canvas = toProcessCanvas(source)
-    return await canvas.toBlob(mimeType, quality)
+    const blob = await canvas.toBlob(mimeType, quality)
+    // Some browsers silently fall back to PNG for unsupported types.
+    if (blob.type !== mimeType) {
+      throw new ImageError(
+        'ENCODE_FAILED',
+        `Encoding to ${mimeType} is not supported by this browser.`,
+        `Browser returned ${blob.type || 'an untyped blob'} instead.`,
+      )
+    }
+    return blob
   } catch (cause) {
     if (cause instanceof ImageError) throw cause
     throw new ImageError(
@@ -115,5 +124,26 @@ export class PngEncoder extends CanvasEncoder {
   async encode(source: CanvasImageSourceLike, options: EncodeOptions): Promise<Blob> {
     void options
     return encodeCanvas(source, OUTPUT_FORMAT_MIME_TYPES.png)
+  }
+}
+
+/**
+ * AVIF encoder through the existing canvas abstraction (no WASM).
+ *
+ * Browser support for AVIF *encoding* via canvas is limited (Chrome 130+).
+ * The encoder fails with a typed ENCODE_FAILED error on unsupported
+ * browsers; callers should gate UI on capabilities.canEncodeFormat('avif')
+ * and fall back gracefully.
+ */
+export class AvifEncoder extends CanvasEncoder {
+  readonly format = 'avif' as const
+  static readonly DEFAULT_QUALITY = 0.8
+
+  async encode(source: CanvasImageSourceLike, options: EncodeOptions): Promise<Blob> {
+    return encodeCanvas(
+      source,
+      OUTPUT_FORMAT_MIME_TYPES.avif,
+      normalizeQuality(options.quality, AvifEncoder.DEFAULT_QUALITY),
+    )
   }
 }

@@ -24,11 +24,12 @@ const emit = defineEmits<{
   processAll: []
 }>()
 
-const formatOptions: { label: string; value: OutputFormat }[] = [
-  { label: 'JPEG', value: 'jpeg' },
-  { label: 'PNG', value: 'png' },
-  { label: 'WebP', value: 'webp' },
-]
+const formatOptions = computed<{ label: string; value: OutputFormat; disabled: boolean }[]>(() => [
+  { label: 'JPEG', value: 'jpeg', disabled: !settings.isFormatAvailable('jpeg') },
+  { label: 'PNG', value: 'png', disabled: !settings.isFormatAvailable('png') },
+  { label: 'WebP', value: 'webp', disabled: !settings.isFormatAvailable('webp') },
+  { label: 'AVIF', value: 'avif', disabled: !settings.isFormatAvailable('avif') },
+])
 
 const canProcess = computed(() => queue.processableItems.length > 0 && !queue.isProcessing)
 
@@ -83,9 +84,13 @@ const qualityValue = computed({
               :key="option.value"
               :value="option.value"
               :label="option.label"
+              :disabled="option.disabled"
             />
           </NRadioGroup>
         </NFormItem>
+        <p v-if="!settings.isFormatAvailable('avif')" class="format-note">
+          AVIF encoding is not supported by this browser.
+        </p>
 
         <NFormItem v-if="settings.qualityApplicable" :label="`Quality: ${qualityValue}`">
           <NSlider
@@ -98,6 +103,18 @@ const qualityValue = computed({
           />
         </NFormItem>
         <p v-else class="png-note">PNG is lossless — quality does not apply.</p>
+
+        <NFormItem>
+          <NCheckbox
+            :checked="settings.preserveMetadata"
+            @update:checked="settings.setPreserveMetadata($event)"
+          >
+            Preserve metadata (EXIF)
+          </NCheckbox>
+        </NFormItem>
+        <p v-if="settings.preserveMetadata" class="format-note">
+          Best effort only: canvas re-encoding strips most metadata in current browsers.
+        </p>
 
         <NButton
           v-if="!queue.isProcessing"
@@ -159,6 +176,13 @@ const qualityValue = computed({
   margin: 0 0 12px;
   font-size: 12px;
   color: #6b7280;
+}
+
+.format-note {
+  margin: -6px 0 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #9ca3af;
 }
 
 .processing-actions {

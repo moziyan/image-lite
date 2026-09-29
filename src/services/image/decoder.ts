@@ -11,6 +11,11 @@ export interface DecodedImage {
 /**
  * Decode a File into an ImageBitmap using browser-native APIs.
  *
+ * EXIF orientation is applied via `imageOrientation: 'from-image'`, so the
+ * returned bitmap is in visual orientation (a 90°-rotated photo decodes
+ * with swapped width/height). Browsers that don't support the option
+ * ignore it; images without EXIF orientation are never rotated.
+ *
  * The caller owns the returned ImageBitmap and must call `bitmap.close()`
  * when done.
  */

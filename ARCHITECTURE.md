@@ -176,9 +176,33 @@ Implementations:
 - JpegEncoder
 - PngEncoder
 - WebpEncoder
-- AvifEncoder later
+- AvifEncoder (canvas-based, no WASM)
 
 The application chooses an encoder through a registry/factory.
+
+### Capability detection & fallbacks
+
+Canvas encoding support is detected by probing a real 1×1 encode
+(`services/image/capabilities.ts`), never by UA sniffing. Browsers that
+cannot encode a format either throw or silently return a PNG blob — both
+are detected. The UI gates format options on the probe result and falls
+back (webp → jpeg → png) when the active format is unavailable. AVIF
+encoding via canvas requires Chrome 130+; no WASM encoder is bundled
+because AVIF is a non-MVP enhancement and the dependency weight is not
+justified while native support is rolling out.
+
+### Metadata policy
+
+- **Default: strip.** All output is produced by canvas re-encoding, which
+  drops EXIF/XMP/ICC in every current browser.
+- **Preserve (opt-in):** best-effort only. The pipeline carries the flag,
+  but metadata preservation is *not guaranteed* and the UI says so —
+  preservation is never claimed unless verified.
+- **EXIF orientation** is not metadata preservation: it is always applied
+  at decode time (`createImageBitmap` with `imageOrientation: 'from-image'`)
+  so output pixels are in visual orientation. A minimal header parser
+  (`services/image/exif.ts`, Vue-free) exposes the orientation tag for
+  diagnostics; rotated images get correct dimensions automatically.
 
 ## 8. Resizer
 
