@@ -43,11 +43,14 @@ jobs:
         run: |
           REPO="${{ github.event.repository.name }}"
           if [[ "$REPO" == *.github.io || -f public/CNAME ]]; then
-            echo "VITE_BASE=/" >> "$GITHUB_ENV"
+            VITE_BASE="/"
           else
-            echo "VITE_BASE=/$REPO/" >> "$GITHUB_ENV"
+            VITE_BASE="/$REPO/"
           fi
-          npm run build
+          echo "Building with VITE_BASE=$VITE_BASE"
+          VITE_BASE="$VITE_BASE" npm run build
+          echo "--- dist/index.html asset refs ---"
+          grep -o 'src="[^"]*"\|href="[^"]*"' dist/index.html
 
       - name: SPA fallback for client-side routes
         run: cp dist/index.html dist/404.html
