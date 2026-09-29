@@ -20,8 +20,7 @@ function swPrecachePlugin() {
       const assetsDir = join(outDir, 'assets')
       const assetUrls = readdirSync(assetsDir)
         .filter(
-          (name) =>
-            (name.endsWith('.js') || name.endsWith('.css')) && !name.includes('jszip'),
+          (name) => (name.endsWith('.js') || name.endsWith('.css')) && !name.includes('jszip'),
         )
         .map((name) => `'assets/${name}'`)
 

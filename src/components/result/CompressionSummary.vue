@@ -15,6 +15,12 @@ const props = defineProps<{
 
 const result = computed(() => props.item.result)
 
+/** Human-readable processing duration (PRODUCT.md §12). */
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)} ms`
+  return `${(ms / 1000).toFixed(1)} s`
+}
+
 const savedPercent = computed(() => {
   if (!result.value || result.value.originalSize === 0) return 0
   return Math.round((1 - result.value.compressionRatio) * 100)
@@ -40,9 +46,15 @@ function download(): void {
 <template>
   <section v-if="result" class="summary" :aria-label="t('result.title')">
     <div class="stats">
-      <NStatistic :label="t('result.original')" :value="formatBytes(result.originalSize)" />
-      <NStatistic :label="t('result.output')" :value="formatBytes(result.size)" />
-      <NStatistic :label="t('result.dimensions')" :value="`${result.width}×${result.height}`" />
+      <NStatistic
+        :label="t('result.original')"
+        :value="`${formatBytes(result.originalSize)} · ${result.originalWidth}×${result.originalHeight}`"
+      />
+      <NStatistic
+        :label="t('result.output')"
+        :value="`${formatBytes(result.size)} · ${result.width}×${result.height}`"
+      />
+      <NStatistic :label="t('result.duration')" :value="formatDuration(result.processingTime)" />
     </div>
     <p class="verdict" :class="{ increased }">{{ summaryText }}</p>
     <p

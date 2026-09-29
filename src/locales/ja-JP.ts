@@ -91,6 +91,7 @@ const messages: MessageSchema = {
     original: '元',
     output: '出力',
     dimensions: '寸法',
+    duration: '時間',
     saved: '{percent}% 削減',
     increased: 'ファイルが {percent}% 増加',
     download: 'ダウンロード',

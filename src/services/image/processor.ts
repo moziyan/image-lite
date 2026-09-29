@@ -49,6 +49,8 @@ export class ImageProcessor {
         format: input.output.format,
         size: blob.size,
         originalSize: input.file.size,
+        originalWidth: decoded.width,
+        originalHeight: decoded.height,
         compressionRatio: input.file.size > 0 ? blob.size / input.file.size : 0,
         processingTime,
       }

@@ -145,6 +145,8 @@ describe('imageQueue store', () => {
           format: 'webp' as const,
           size: 1,
           originalSize: 1024,
+          originalWidth: 100,
+          originalHeight: 100,
           compressionRatio: 0.001,
           processingTime: 5,
         }),
@@ -263,6 +265,8 @@ describe('imageQueue store', () => {
         format: 'webp',
         size: 1,
         originalSize: 1,
+        originalWidth: 100,
+        originalHeight: 100,
         compressionRatio: 1,
         processingTime: 1,
       })
@@ -287,6 +291,8 @@ describe('imageQueue store', () => {
             format: 'webp' as const,
             size: 1,
             originalSize: 1024,
+            originalWidth: 100,
+            originalHeight: 100,
             compressionRatio: 0.001,
             processingTime: 1,
           }

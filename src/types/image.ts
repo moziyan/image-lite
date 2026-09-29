@@ -46,6 +46,9 @@ export interface ImageProcessResult {
   format: OutputFormat
   size: number
   originalSize: number
+  /** Original (decoded) dimensions, after EXIF orientation normalization. */
+  originalWidth: number
+  originalHeight: number
   compressionRatio: number
   processingTime: number
   /** Present when a target-size search ran. */

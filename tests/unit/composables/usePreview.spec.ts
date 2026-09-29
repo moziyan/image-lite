@@ -31,6 +31,8 @@ function makeResult(size = 1234): ImageProcessResult {
     format: 'webp',
     size,
     originalSize: size * 2,
+    originalWidth: 100,
+    originalHeight: 100,
     compressionRatio: 0.5,
     processingTime: 1,
   }

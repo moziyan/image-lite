@@ -51,9 +51,7 @@ const loadedLocales = new Set<SupportedLocale>(['en-US'])
 export async function setLocale(locale: SupportedLocale): Promise<void> {
   if (!loadedLocales.has(locale)) {
     const messages =
-      locale === 'zh-CN'
-        ? (await import('./zh-CN')).default
-        : (await import('./ja-JP')).default
+      locale === 'zh-CN' ? (await import('./zh-CN')).default : (await import('./ja-JP')).default
     i18n.global.setLocaleMessage(locale as 'en-US', messages)
     loadedLocales.add(locale)
   }

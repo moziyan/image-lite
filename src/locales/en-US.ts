@@ -88,6 +88,7 @@ const enUS = {
     original: 'Original',
     output: 'Output',
     dimensions: 'Dimensions',
+    duration: 'Time',
     saved: 'Saved {percent}%',
     increased: 'File increased by {percent}%',
     download: 'Download',

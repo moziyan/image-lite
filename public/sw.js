@@ -87,9 +87,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', copy))
           return response
         })
-        .catch(() =>
-          caches.match('/index.html').then((cached) => cached || caches.match('/')),
-        ),
+        .catch(() => caches.match('/index.html').then((cached) => cached || caches.match('/'))),
     )
     return
   }

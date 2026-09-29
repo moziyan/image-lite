@@ -88,6 +88,7 @@ const messages: MessageSchema = {
     original: '原始',
     output: '输出',
     dimensions: '尺寸',
+    duration: '耗时',
     saved: '节省 {percent}%',
     increased: '文件增大了 {percent}%',
     download: '下载',

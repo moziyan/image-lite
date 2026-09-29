@@ -38,6 +38,8 @@ function makeResult(): ImageProcessResult {
     format: 'webp',
     size: 1,
     originalSize: 2,
+    originalWidth: 100,
+    originalHeight: 100,
     compressionRatio: 0.5,
     processingTime: 1,
   }

@@ -50,6 +50,8 @@ async function processTask(
 
     const decoded = await decodeImage(payload.file)
     bitmap = decoded.bitmap
+    const originalWidth = decoded.width
+    const originalHeight = decoded.height
     throwIfCancelled(taskId)
     post({ type: 'progress', taskId, progress: 0.4 })
 
@@ -115,6 +117,8 @@ async function processTask(
       format: payload.output.format,
       size: blob.size,
       originalSize: payload.file.size,
+      originalWidth,
+      originalHeight,
       compressionRatio: payload.file.size > 0 ? blob.size / payload.file.size : 0,
       processingTime: performance.now() - startedAt,
       targetSize: targetInfo,

@@ -411,13 +411,13 @@ Measure:
 Representative images through the decode → resize → encode (WebP q80)
 pipeline, measured in a real browser:
 
-| Input | Dims | Decode | Resize | Encode | Total | Output |
-|---|---|---|---|---|---|---|
-| 1.9 MB JPEG | 2000×1500 | 27 ms | 10 ms | 393 ms | 431 ms | 1.1 MB |
-| 8.4 MB JPEG | 4500×3000 | 122 ms | 40 ms | 1720 ms | 1881 ms | 5.0 MB |
-| 19.9 MB JPEG | 6000×4000 | 233 ms | 77 ms | 2798 ms | 3107 ms | 7.8 MB |
-| 51 MB JPEG | 8000×5000 | 508 ms | 152 ms | 4368 ms | 5028 ms | 11.6 MB |
-| 8000×6000 PNG | 8000×6000 | 164 ms | 193 ms | 1541 ms | 1898 ms | 84 KB |
+| Input         | Dims      | Decode | Resize | Encode  | Total   | Output  |
+| ------------- | --------- | ------ | ------ | ------- | ------- | ------- |
+| 1.9 MB JPEG   | 2000×1500 | 27 ms  | 10 ms  | 393 ms  | 431 ms  | 1.1 MB  |
+| 8.4 MB JPEG   | 4500×3000 | 122 ms | 40 ms  | 1720 ms | 1881 ms | 5.0 MB  |
+| 19.9 MB JPEG  | 6000×4000 | 233 ms | 77 ms  | 2798 ms | 3107 ms | 7.8 MB  |
+| 51 MB JPEG    | 8000×5000 | 508 ms | 152 ms | 4368 ms | 5028 ms | 11.6 MB |
+| 8000×6000 PNG | 8000×6000 | 164 ms | 193 ms | 1541 ms | 1898 ms | 84 KB   |
 
 Findings:
 
