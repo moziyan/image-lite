@@ -25,15 +25,15 @@ Legend:
 
 ## Phase 1 — UI Shell
 
-- [ ] 1.1 App shell
-- [ ] 1.2 Header
-- [ ] 1.3 Empty state
-- [ ] 1.4 Upload zone
-- [ ] 1.5 File picker
-- [ ] 1.6 Drag-and-drop
-- [ ] 1.7 Image queue
-- [ ] 1.8 Image card
-- [ ] 1.9 Responsive editor layout
+- [x] 1.1 App shell
+- [x] 1.2 Header
+- [x] 1.3 Empty state
+- [x] 1.4 Upload zone
+- [x] 1.5 File picker
+- [x] 1.6 Drag-and-drop
+- [x] 1.7 Image queue
+- [x] 1.8 Image card
+- [x] 1.9 Responsive editor layout
 
 ## Phase 2 — Image Core
 
