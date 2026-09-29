@@ -114,14 +114,14 @@ Legend:
 
 ## Phase 9 — Performance
 
-- [ ] 9.1 Benchmark small images
-- [ ] 9.2 Benchmark 10 MB images
-- [ ] 9.3 Benchmark 50 MB images
-- [ ] 9.4 Benchmark large dimensions
-- [ ] 9.5 Memory lifecycle audit
-- [ ] 9.6 Worker concurrency tuning
-- [ ] 9.7 Preview optimization
-- [ ] 9.8 Production bundle analysis
+- [x] 9.1 Benchmark small images
+- [x] 9.2 Benchmark 10 MB images
+- [x] 9.3 Benchmark 50 MB images
+- [x] 9.4 Benchmark large dimensions
+- [x] 9.5 Memory lifecycle audit
+- [x] 9.6 Worker concurrency tuning
+- [x] 9.7 Preview optimization
+- [x] 9.8 Production bundle analysis
 
 ## Phase 10 — PWA / Release
 

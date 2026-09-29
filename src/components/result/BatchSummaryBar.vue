@@ -37,12 +37,7 @@ const summaryText = computed(() => {
     const output = formatBytes(s.outputBytes)
     parts.push(
       savedPercent.value >= 0
-        ? t('batch.summary', {
-            succeeded: s.succeeded,
-            original,
-            output,
-            percent: savedPercent.value,
-          })
+        ? t('batch.summaryDelta', { original, output, percent: savedPercent.value })
         : t('batch.summaryGrew', { original, output }),
     )
   }

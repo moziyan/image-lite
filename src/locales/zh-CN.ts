@@ -99,7 +99,7 @@ const messages: MessageSchema = {
     title: '批量摘要',
     downloadZip: '全部下载（ZIP）',
     zipError: '构建 ZIP 压缩包失败,请重试。',
-    summary: '{succeeded} 个成功 · {original} → {output}(节省 {percent}%)',
+    summaryDelta: '{original} → {output}(节省 {percent}%)',
     summarySimple: '{succeeded} 个成功',
     summaryFailed: '{failed} 个失败',
     summaryCancelled: '{cancelled} 个已取消',

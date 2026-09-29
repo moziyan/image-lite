@@ -99,8 +99,7 @@ const enUS = {
     title: 'Batch summary',
     downloadZip: 'Download all (ZIP)',
     zipError: 'Failed to build the ZIP archive. Please try again.',
-    summary:
-      '{succeeded} succeeded · {original} → {output} (saved {percent}%) | {succeeded} succeeded, {failed} failed · {original} → {output} (saved {percent}%)',
+    summaryDelta: '{original} → {output} (saved {percent}%)',
     summarySimple: '{succeeded} succeeded',
     summaryFailed: '{failed} failed',
     summaryCancelled: '{cancelled} cancelled',

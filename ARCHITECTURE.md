@@ -406,6 +406,33 @@ Measure:
 - output size
 - memory behavior where measurable
 
+### Phase 9 audit (Chromium, desktop)
+
+Representative images through the decode → resize → encode (WebP q80)
+pipeline, measured in a real browser:
+
+| Input | Dims | Decode | Resize | Encode | Total | Output |
+|---|---|---|---|---|---|---|
+| 1.9 MB JPEG | 2000×1500 | 27 ms | 10 ms | 393 ms | 431 ms | 1.1 MB |
+| 8.4 MB JPEG | 4500×3000 | 122 ms | 40 ms | 1720 ms | 1881 ms | 5.0 MB |
+| 19.9 MB JPEG | 6000×4000 | 233 ms | 77 ms | 2798 ms | 3107 ms | 7.8 MB |
+| 51 MB JPEG | 8000×5000 | 508 ms | 152 ms | 4368 ms | 5028 ms | 11.6 MB |
+| 8000×6000 PNG | 8000×6000 | 164 ms | 193 ms | 1541 ms | 1898 ms | 84 KB |
+
+Findings:
+
+- **Encode dominates** (85–90% of total) and scales with pixel count, so
+  it stays in the worker. Decode and resize are minor.
+- UI stays responsive: ~60 fps while a 3-image batch (30 MB) processes
+  on 2 worker lanes.
+- Memory is stable: JS heap ~18–19 MB after a 51 MB image and after a
+  6×10 MB batch — Object URLs and ImageBitmaps are released promptly.
+- Batch lanes are device-tuned: 2 when ≥2 cores, 1 otherwise
+  (`hardwareConcurrency`).
+
+Bundle (gzip): main ~205 kB (naive-ui + vue + pinia + vue-i18n runtime),
+jszip 30 kB lazy, zh/ja locales ~2 kB each lazy, worker 9 kB.
+
 ## 20. Testing Strategy
 
 Unit:

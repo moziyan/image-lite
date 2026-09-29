@@ -16,7 +16,17 @@ import type {
 } from '@/types/image'
 
 /** Conservative default: at most 2 images processed concurrently (AGENT_PROMPTS §4.1). */
-const BATCH_CONCURRENCY = 2
+/**
+ * Batch lane count, tuned to device capability (ARCHITECTURE.md §14:
+ * 1–2 tasks). Image encoding is CPU-bound in workers; 2 lanes keeps the
+ * UI responsive on typical hardware while overlapping decode/encode. A
+ * single core device falls back to 1 lane.
+ */
+function resolveBatchConcurrency(): number {
+  const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2
+  return cores >= 2 ? 2 : 1
+}
+const BATCH_CONCURRENCY = resolveBatchConcurrency()
 
 export interface ImageItem {
   id: string

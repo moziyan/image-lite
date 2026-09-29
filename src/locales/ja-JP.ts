@@ -102,7 +102,7 @@ const messages: MessageSchema = {
     title: 'バッチ概要',
     downloadZip: 'すべてダウンロード(ZIP)',
     zipError: 'ZIP アーカイブの作成に失敗しました。もう一度お試しください。',
-    summary: '{succeeded} 件成功 · {original} → {output}({percent}% 削減)',
+    summaryDelta: '{original} → {output}({percent}% 削減)',
     summarySimple: '{succeeded} 件成功',
     summaryFailed: '{failed} 件失敗',
     summaryCancelled: '{cancelled} 件キャンセル',
