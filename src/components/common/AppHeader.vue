@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { NButton, NSpace } from 'naive-ui'
 
+import AddImagesButton from '@/components/upload/AddImagesButton.vue'
 import { useImageQueueStore } from '@/stores/imageQueue'
+
+const emit = defineEmits<{
+  filesSelected: [files: File[]]
+}>()
 
 const queue = useImageQueueStore()
 </script>
@@ -14,6 +19,7 @@ const queue = useImageQueueStore()
       <span class="tagline">Local, private image compression</span>
     </div>
     <NSpace v-if="!queue.isEmpty" :size="8">
+      <AddImagesButton @files-selected="emit('filesSelected', $event)" />
       <NButton tertiary size="small" @click="queue.clearAll()"> Clear all </NButton>
     </NSpace>
   </header>

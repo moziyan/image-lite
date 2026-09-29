@@ -21,7 +21,7 @@ function onFilesSelected(files: File[]): void {
 
 <template>
   <div class="home">
-    <AppHeader />
+    <AppHeader @files-selected="onFilesSelected" />
     <EmptyState v-if="queue.isEmpty" @files-selected="onFilesSelected" />
     <div v-else class="editor">
       <aside class="queue-col">
