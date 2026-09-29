@@ -125,13 +125,13 @@ Legend:
 
 ## Phase 10 — PWA / Release
 
-- [ ] 10.1 Manifest
-- [ ] 10.2 Service Worker
-- [ ] 10.3 Offline shell
-- [ ] 10.4 No image caching
-- [ ] 10.5 Production deployment
-- [ ] 10.6 Browser matrix test
-- [ ] 10.7 Mobile test
-- [ ] 10.8 Final security review
-- [ ] 10.9 Final privacy review
-- [ ] 10.10 Release checklist
+- [x] 10.1 Manifest
+- [x] 10.2 Service Worker
+- [x] 10.3 Offline shell
+- [x] 10.4 No image caching
+- [x] 10.5 Production deployment
+- [x] 10.6 Browser matrix test
+- [x] 10.7 Mobile test
+- [x] 10.8 Final security review
+- [x] 10.9 Final privacy review
+- [x] 10.10 Release checklist

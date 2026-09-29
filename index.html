@@ -7,11 +7,25 @@
       name="description"
       content="ImageLite - Privacy-first browser image compression, resizing, and conversion."
     />
+    <meta name="theme-color" content="#18a058" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>ImageLite</title>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+    <script>
+      // Register the service worker for the offline app shell.
+      // User image bytes are never cached (see sw.js).
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {
+            // Offline support is best-effort; the app works without it.
+          })
+        })
+      }
+    </script>
   </body>
 </html>
