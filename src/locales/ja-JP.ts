@@ -9,6 +9,7 @@ const messages: MessageSchema = {
   header: {
     addImages: '画像を追加',
     clearAll: 'すべてクリア',
+    clearAllConfirm: 'キュー内のすべての画像を削除しますか？',
     language: '言語',
     themeLight: 'ライトテーマに切替',
     themeDark: 'ダークテーマに切替',
@@ -53,10 +54,14 @@ const messages: MessageSchema = {
     allowUpscale: '拡大を許可',
     outputFormat: '出力形式',
     avifUnsupported: 'このブラウザは AVIF エンコードに対応していません。',
+    detectingFormats: '対応形式を検出中…',
     quality: '品質: {value}',
     qualityLabel: '圧縮品質',
+    qualitySmall: '最小ファイル',
+    qualityBalanced: 'バランス',
+    qualityHigh: '最高画質',
     pngLossless: 'PNG はロスレスのため品質設定は適用されません。',
-    preserveMetadata: 'メタデータ(EXIF)を保持',
+    preserveMetadata: 'メタデータ(EXIF)の保持を試みる',
     metadataNote:
       '最善努力のみ:現在のブラウザでは canvas 再エンコードでほとんどのメタデータが失われます。',
     targetSize: '目標ファイルサイズ',
@@ -66,7 +71,7 @@ const messages: MessageSchema = {
     minQualityLabel: '目標サイズ検索の最低品質',
     allowReduceDims: '寸法の縮小を許可',
     targetNote:
-      '最善努力:品質を検索し、必要に応じて寸法を縮小します。正確なサイズは保証されません。',
+      '最善努力:目標に近づくよう品質と寸法を自動調整します。正確なサイズは保証されません。',
     targetPngNote: 'PNG はロスレスのため、目標サイズは JPEG / WebP / AVIF のみに適用されます。',
     compress: '画像を圧縮 | {count} 枚の画像を圧縮',
     cancel: 'キャンセル',
@@ -117,6 +122,20 @@ const messages: MessageSchema = {
     batchDone: '完了!すべての画像が処理されました。',
     failedSuffix: '{count} 件失敗',
     cancelledSuffix: '{count} 件キャンセル',
+    duplicatesSkipped: '{count} 枚の画像はすでにキューにあるためスキップされました。',
+    retryFailed: '失敗を再試行({count})',
+  },
+  errors: {
+    UNSUPPORTED_FORMAT: '"{name}" は未対応の形式です。対応形式: JPEG、PNG、WebP。',
+    FILE_TOO_LARGE: '"{name}" は最大ファイルサイズ({maxSize} MB)を超えています。',
+    BATCH_LIMIT: '"{name}" はスキップされました:バッチ上限は {max} 枚です。',
+    PIXEL_LIMIT_EXCEEDED: '"{name}" は対応する最大解像度を超えています。',
+    DECODE_FAILED:
+      '"{name}" をデコードできませんでした。ファイルが破損しているか、画像ではない可能性があります。',
+    INVALID_IMAGE: '"{name}" の寸法が無効です。',
+    ENCODE_FAILED: 'このブラウザはこのエンコードに対応していません。',
+    OUT_OF_MEMORY: 'この画像を処理するのに十分なメモリがありません。',
+    UNKNOWN: '画像の処理中に予期しないエラーが発生しました。',
   },
 }
 

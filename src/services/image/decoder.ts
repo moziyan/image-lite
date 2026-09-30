@@ -28,13 +28,16 @@ export async function decodeImage(file: File): Promise<DecodedImage> {
       'DECODE_FAILED',
       `"${file.name}" could not be decoded. The file may be corrupted or not a real image.`,
       cause instanceof Error ? cause.message : String(cause),
+      { name: file.name },
     )
   }
 
   const { width, height } = bitmap
   if (width <= 0 || height <= 0) {
     bitmap.close()
-    throw new ImageError('INVALID_IMAGE', `"${file.name}" has invalid dimensions.`)
+    throw new ImageError('INVALID_IMAGE', `"${file.name}" has invalid dimensions.`, undefined, {
+      name: file.name,
+    })
   }
 
   if (width * height > LIMITS.MAX_PIXELS) {
@@ -43,6 +46,7 @@ export async function decodeImage(file: File): Promise<DecodedImage> {
       'PIXEL_LIMIT_EXCEEDED',
       `"${file.name}" exceeds the maximum supported resolution.`,
       `${width}x${height} > ${LIMITS.MAX_PIXELS} pixels`,
+      { name: file.name },
     )
   }
 

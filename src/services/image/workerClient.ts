@@ -1,3 +1,4 @@
+import { ImageError } from '@/services/image/errors'
 import type { ImageProcessInput, ImageProcessResult } from '@/types/image'
 import type { WorkerRequest, WorkerResponse } from '@/types/worker'
 
@@ -62,7 +63,11 @@ export class ImageWorkerClient {
         break
       case 'error':
         this.pending.delete(message.taskId)
-        task.reject(new Error(message.error))
+        task.reject(
+          message.code
+            ? new ImageError(message.code, message.error, undefined, message.params)
+            : new Error(message.error),
+        )
         break
       case 'cancelled':
         this.pending.delete(message.taskId)

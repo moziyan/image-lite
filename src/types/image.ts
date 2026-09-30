@@ -64,6 +64,7 @@ export type ImageErrorCode =
   | 'UNSUPPORTED_FORMAT'
   | 'INVALID_IMAGE'
   | 'FILE_TOO_LARGE'
+  | 'BATCH_LIMIT'
   | 'PIXEL_LIMIT_EXCEEDED'
   | 'DECODE_FAILED'
   | 'ENCODE_FAILED'

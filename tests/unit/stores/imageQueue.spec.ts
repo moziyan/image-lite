@@ -63,7 +63,7 @@ describe('imageQueue store', () => {
 
   it('adds valid files and selects the first one', () => {
     const store = useImageQueueStore()
-    const rejected = store.addFiles([
+    const { rejected } = store.addFiles([
       makeFile('a.jpg', 'image/jpeg'),
       makeFile('b.png', 'image/png'),
     ])
@@ -76,7 +76,7 @@ describe('imageQueue store', () => {
 
   it('rejects invalid files without adding them', () => {
     const store = useImageQueueStore()
-    const rejected = store.addFiles([makeFile('anim.gif', 'image/gif')])
+    const { rejected } = store.addFiles([makeFile('anim.gif', 'image/gif')])
     expect(rejected).toHaveLength(1)
     expect(rejected[0]?.code).toBe('UNSUPPORTED_FORMAT')
     expect(store.isEmpty).toBe(true)
@@ -130,9 +130,20 @@ describe('imageQueue store', () => {
     const files = Array.from({ length: LIMITS.MAX_BATCH_SIZE + 5 }, (_, i) =>
       makeFile(`img-${i}.jpg`, 'image/jpeg'),
     )
-    const rejected = store.addFiles(files)
+    const { rejected } = store.addFiles(files)
     expect(store.count).toBe(LIMITS.MAX_BATCH_SIZE)
     expect(rejected).toHaveLength(5)
+  })
+
+  it('skips duplicate files already in the queue', () => {
+    const store = useImageQueueStore()
+    const file = makeFile('a.jpg', 'image/jpeg')
+    store.addFiles([file])
+    const { rejected, duplicates } = store.addFiles([file, makeFile('b.png', 'image/png')])
+    expect(duplicates).toBe(1)
+    expect(rejected).toHaveLength(0)
+    expect(store.count).toBe(2)
+    expect(store.items.map((item) => item.name)).toEqual(['a.jpg', 'b.png'])
   })
 
   describe('processing', () => {
@@ -305,7 +316,9 @@ describe('imageQueue store', () => {
 
       await store.processAll(settings())
 
-      expect(peak).toBe(2)
+      // Concurrency is device-tuned: 2–4 lanes depending on core count.
+      expect(peak).toBeGreaterThanOrEqual(2)
+      expect(peak).toBeLessThanOrEqual(4)
       expect(store.items.every((item) => item.status === 'completed')).toBe(true)
     })
 
@@ -389,7 +402,7 @@ describe('imageQueue store', () => {
 
       expect(downloadMock).toHaveBeenCalledTimes(1)
       const [blob, fileName] = downloadMock.mock.calls[0]!
-      expect(fileName).toMatch(/^imagelite-\d{4}-\d{2}-\d{2}\.zip$/)
+      expect(fileName).toMatch(/^imagelite-\d{4}-\d{2}-\d{2}-\d{4}\.zip$/)
 
       const JSZip = (await import('jszip')).default
       const zip = await JSZip.loadAsync(blob as Blob)

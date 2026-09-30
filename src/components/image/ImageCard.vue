@@ -26,7 +26,8 @@ const STATUS_TYPES: Record<
   processing: 'info',
   completed: 'success',
   error: 'error',
-  cancelled: 'warning',
+  // Cancelled is a neutral, user-initiated stop — not a warning condition.
+  cancelled: 'default',
 }
 
 const statusLabel = computed(() => t(`queue.status.${props.item.status}`))
@@ -82,6 +83,7 @@ function onRemove(event: Event): void {
       quaternary
       circle
       size="small"
+      :disabled="item.status === 'processing'"
       :aria-label="t('queue.remove', { name: item.name })"
       @click="onRemove"
     >

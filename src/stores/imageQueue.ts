@@ -1,12 +1,14 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { downloadBlob } from '@/services/download/downloadService'
 import { runBatch } from '@/services/image/batchProcessor'
+import { ImageError } from '@/services/image/errors'
 import type { FileValidationError } from '@/services/image/validation'
 import { validateImageFiles } from '@/services/image/validation'
 import { imageWorkerClient, TaskCancelledError } from '@/services/image/workerClient'
 import { buildZip, buildZipEntryName, ZipError } from '@/services/zip/zipService'
+import { translateImageError } from '@/utils/errorMessages'
 import type {
   EncodeOptions,
   ImageProcessResult,
@@ -24,7 +26,9 @@ import type {
  */
 function resolveBatchConcurrency(): number {
   const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2
-  return cores >= 2 ? 2 : 1
+  // Image encoding is CPU-bound in workers. Scale lanes with cores but keep
+  // headroom for the UI thread: 2 lanes minimum, 4 maximum.
+  return Math.min(4, Math.max(2, cores - 2))
 }
 const BATCH_CONCURRENCY = resolveBatchConcurrency()
 
@@ -73,6 +77,11 @@ function generateId(): string {
   return `img-${Date.now()}-${nextId}`
 }
 
+/** Dedup key: same name, byte size and modification time = same file. */
+function itemKey(name: string, size: number, file: File): string {
+  return `${name}#${size}#${file.lastModified}`
+}
+
 export const useImageQueueStore = defineStore('imageQueue', () => {
   const items = ref<ImageItem[]>([])
   const selectedId = ref<string | null>(null)
@@ -88,6 +97,20 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   /** Cooperative cancellation flag for the current batch run. */
   let batchSignal: { cancelled: boolean } | null = null
 
+  // Warn before the page is closed/refreshed mid-batch (progress would be lost).
+  if (typeof window !== 'undefined') {
+    const onBeforeUnload = (event: BeforeUnloadEvent): void => {
+      event.preventDefault()
+    }
+    watch(isProcessing, (processing) => {
+      if (processing) {
+        window.addEventListener('beforeunload', onBeforeUnload)
+      } else {
+        window.removeEventListener('beforeunload', onBeforeUnload)
+      }
+    })
+  }
+
   const selectedItem = computed<ImageItem | null>(
     () => items.value.find((item) => item.id === selectedId.value) ?? null,
   )
@@ -97,6 +120,16 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
   const processableItems = computed(() =>
     items.value.filter((item) => item.status === 'pending' || item.status === 'error'),
   )
+  const failedItems = computed(() => items.value.filter((item) => item.status === 'error'))
+
+  /** Position counters for the current/last batch run: settled = done + failed + cancelled. */
+  const batchCounts = computed(() => {
+    const relevant = items.value.filter(
+      (item) => item.status !== 'pending' || activeCancels.has(item.id),
+    )
+    const settled = relevant.filter((item) => item.status !== 'processing').length
+    return { settled, total: relevant.length }
+  })
 
   /** Aggregate progress (0–1) across items in the current/last batch run. */
   const aggregateProgress = computed(() => {
@@ -112,11 +145,19 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     return total / relevant.length
   })
 
-  function addFiles(files: readonly File[]): FileValidationError[] {
+  function addFiles(files: readonly File[]): { rejected: FileValidationError[]; duplicates: number } {
     const { accepted, rejected } = validateImageFiles(files)
     lastRejected.value = rejected
 
+    // Skip files already in the queue (same name, size and mtime).
+    const existing = new Set(items.value.map((item) => itemKey(item.name, item.size, item.file)))
+    let duplicates = 0
+
     for (const file of accepted) {
+      if (existing.has(itemKey(file.name, file.size, file))) {
+        duplicates += 1
+        continue
+      }
       const item: ImageItem = {
         id: generateId(),
         file,
@@ -131,13 +172,14 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
         error: null,
       }
       items.value.push(item)
+      existing.add(itemKey(file.name, file.size, file))
     }
 
     if (selectedId.value === null && items.value.length > 0) {
       selectedId.value = items.value[0]?.id ?? null
     }
 
-    return rejected
+    return { rejected, duplicates }
   }
 
   function releaseItemResources(item: ImageItem): void {
@@ -240,7 +282,12 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
         item.error = null
       } else {
         item.status = 'error'
-        item.error = error instanceof Error ? error.message : 'Processing failed.'
+        item.error =
+          error instanceof ImageError
+            ? translateImageError(error.code, error.params ?? {})
+            : error instanceof Error
+              ? error.message
+              : 'Processing failed.'
       }
     } finally {
       activeCancels.delete(item.id)
@@ -253,7 +300,19 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
    */
   async function processAll(settings: ProcessSettings): Promise<void> {
     if (isProcessing.value) return
-    const ids = processableItems.value.map((item) => item.id)
+    await processIds(processableItems.value.map((item) => item.id), settings)
+  }
+
+  /** Re-run only the items whose last attempt failed. */
+  async function retryFailed(settings: ProcessSettings): Promise<void> {
+    if (isProcessing.value) return
+    await processIds(
+      failedItems.value.map((item) => item.id),
+      settings,
+    )
+  }
+
+  async function processIds(ids: readonly string[], settings: ProcessSettings): Promise<void> {
     if (ids.length === 0) return
 
     isProcessing.value = true
@@ -314,7 +373,8 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
         blob: item.result!.blob,
       })),
     )
-    downloadBlob(blob, `imagelite-${new Date().toISOString().slice(0, 10)}.zip`)
+    const stamp = new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '')
+    downloadBlob(blob, `imagelite-${stamp}.zip`)
   }
 
   return {
@@ -328,6 +388,8 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     count,
     completedItems,
     processableItems,
+    failedItems,
+    batchCounts,
     aggregateProgress,
     addFiles,
     removeItem,
@@ -337,6 +399,7 @@ export const useImageQueueStore = defineStore('imageQueue', () => {
     cancelAll,
     processItem,
     processAll,
+    retryFailed,
     downloadAllAsZip,
   }
 })

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMessage } from 'naive-ui'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppHeader from '@/components/common/AppHeader.vue'
@@ -11,18 +12,84 @@ import CompressionSummary from '@/components/result/CompressionSummary.vue'
 import SettingsPanel from '@/components/settings/SettingsPanel.vue'
 import { useImageQueueStore } from '@/stores/imageQueue'
 import { useSettingsStore } from '@/stores/settings'
+import { translateImageError } from '@/utils/errorMessages'
 
 const { t } = useI18n()
 const queue = useImageQueueStore()
 const settings = useSettingsStore()
 const message = useMessage()
 
+/** True while files are dragged over the window in editor mode. */
+const isDraggingFiles = ref(false)
+let dragDepth = 0
+
+function hasFiles(event: DragEvent): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
+}
+
 function onFilesSelected(files: File[]): void {
-  const rejected = queue.addFiles(files)
+  const { rejected, duplicates } = queue.addFiles(files)
+  if (duplicates > 0) {
+    message.warning(t('messages.duplicatesSkipped', { count: duplicates }))
+  }
   if (rejected.length === 1) {
-    message.error(t('messages.rejectedOne', { message: rejected[0]!.message }))
+    const err = rejected[0]!
+    message.error(translateImageError(err.code, { name: err.fileName, ...err.params }))
   } else if (rejected.length > 1) {
     message.error(t('messages.rejectedMany', { count: rejected.length }))
+  }
+}
+
+/**
+ * Global drag-and-drop (editor mode): dropping images anywhere in the
+ * window adds them to the queue. preventDefault on dragover/drop also
+ * stops the browser from navigating to the dropped file (which would
+ * discard all queue state).
+ */
+function onGlobalDragEnter(event: DragEvent): void {
+  if (!hasFiles(event)) return
+  event.preventDefault()
+  dragDepth += 1
+  if (!queue.isEmpty) isDraggingFiles.value = true
+}
+
+function onGlobalDragOver(event: DragEvent): void {
+  if (!hasFiles(event)) return
+  event.preventDefault()
+}
+
+function onGlobalDragLeave(event: DragEvent): void {
+  if (!hasFiles(event)) return
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) isDraggingFiles.value = false
+}
+
+function onGlobalDrop(event: DragEvent): void {
+  if (!hasFiles(event)) return
+  event.preventDefault()
+  dragDepth = 0
+  isDraggingFiles.value = false
+  // In empty state the UploadZone handles drops itself; a drop outside the
+  // zone is only swallowed to prevent browser navigation.
+  if (queue.isEmpty) return
+  const files = event.dataTransfer ? Array.from(event.dataTransfer.files) : []
+  if (files.length > 0) onFilesSelected(files)
+}
+
+/** Paste-to-upload: screenshots land straight in the queue. */
+function onPaste(event: ClipboardEvent): void {
+  const items = event.clipboardData?.items
+  if (!items) return
+  const files: File[] = []
+  for (const item of items) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile()
+      if (file) files.push(file)
+    }
+  }
+  if (files.length > 0) {
+    event.preventDefault()
+    onFilesSelected(files)
   }
 }
 
@@ -52,7 +119,14 @@ async function onProcessAll(): Promise<void> {
 </script>
 
 <template>
-  <div class="home">
+  <div
+    class="home"
+    @dragenter="onGlobalDragEnter"
+    @dragover="onGlobalDragOver"
+    @dragleave="onGlobalDragLeave"
+    @drop="onGlobalDrop"
+    @paste="onPaste"
+  >
     <AppHeader @files-selected="onFilesSelected" />
     <EmptyState v-if="queue.isEmpty" @files-selected="onFilesSelected" />
     <div v-else class="editor">
@@ -69,14 +143,40 @@ async function onProcessAll(): Promise<void> {
         <CompressionSummary v-if="queue.selectedItem" :item="queue.selectedItem" />
       </aside>
     </div>
+    <div v-if="isDraggingFiles" class="drop-overlay" aria-hidden="true">
+      <p class="drop-overlay-text">{{ t('upload.dropActive') }}</p>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .home {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  border: 3px dashed var(--accent);
+  pointer-events: none;
+}
+
+.drop-overlay-text {
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .editor {
@@ -131,6 +231,11 @@ async function onProcessAll(): Promise<void> {
 
   .preview-col {
     order: -1;
+  }
+
+  /* Keep the queue from pushing preview/settings off-screen on mobile. */
+  .queue-col {
+    max-height: 45vh;
   }
 }
 </style>

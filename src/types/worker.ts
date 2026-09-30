@@ -3,7 +3,7 @@
  * See ARCHITECTURE.md §11.
  */
 
-import type { ImageProcessInput, ImageProcessResult } from './image'
+import type { ImageErrorCode, ImageProcessInput, ImageProcessResult } from './image'
 
 export type WorkerRequest =
   | {
@@ -30,7 +30,11 @@ export type WorkerResponse =
   | {
       type: 'error'
       taskId: string
+      /** English fallback message (used if code is unknown to the UI). */
       error: string
+      /** Structured error for localized rendering on the main thread. */
+      code?: ImageErrorCode
+      params?: Record<string, string | number>
     }
   | {
       type: 'cancelled'

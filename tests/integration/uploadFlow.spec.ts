@@ -62,7 +62,7 @@ describe('upload flow (store integration)', () => {
 
   it('adds dropped files to the queue and reports rejections', () => {
     const store = useImageQueueStore()
-    const rejected = store.addFiles([
+    const { rejected } = store.addFiles([
       makeFile('ok.jpg', 'image/jpeg'),
       makeFile('bad.gif', 'image/gif'),
       makeFile('ok2.webp', 'image/webp'),

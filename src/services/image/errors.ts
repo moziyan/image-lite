@@ -8,12 +8,20 @@ import type { ImageErrorCode } from '@/types/image'
 export class ImageError extends Error {
   readonly code: ImageErrorCode
   readonly detail?: string
+  /** Template params for localized rendering (e.g. file name). */
+  readonly params?: Record<string, string | number>
 
-  constructor(code: ImageErrorCode, message: string, detail?: string) {
+  constructor(
+    code: ImageErrorCode,
+    message: string,
+    detail?: string,
+    params?: Record<string, string | number>,
+  ) {
     super(message)
     this.name = 'ImageError'
     this.code = code
     this.detail = detail
+    this.params = params
   }
 }
 

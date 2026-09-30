@@ -4,7 +4,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { ZipError } from '@/services/zip/zipService'
-import { useImageQueueStore } from '@/stores/imageQueue'
+import { useImageQueueStore, type ProcessSettings } from '@/stores/imageQueue'
+import { useSettingsStore } from '@/stores/settings'
 import { formatBytes } from '@/utils/bytes'
 
 const { t } = useI18n()
@@ -14,9 +15,30 @@ const emit = defineEmits<{
 }>()
 
 const queue = useImageQueueStore()
+const settings = useSettingsStore()
 const downloading = ref(false)
+const retrying = ref(false)
 
 const summary = computed(() => queue.lastBatchSummary)
+
+/** Snapshot of the current global settings for a retry run. */
+function currentSettings(): ProcessSettings {
+  return {
+    resize: { ...settings.resize },
+    output: { ...settings.output },
+    preserveMetadata: settings.preserveMetadata,
+    targetSize: settings.targetSizeApplicable ? { ...settings.targetSize } : undefined,
+  }
+}
+
+async function retryFailed(): Promise<void> {
+  retrying.value = true
+  try {
+    await queue.retryFailed(currentSettings())
+  } finally {
+    retrying.value = false
+  }
+}
 
 const savedPercent = computed(() => {
   const s = summary.value
@@ -65,10 +87,23 @@ async function downloadZip(): Promise<void> {
 </script>
 
 <template>
-  <div v-if="queue.completedItems.length > 0" class="batch-bar" :aria-label="t('batch.title')">
+  <div
+    v-if="queue.completedItems.length > 0 || queue.failedItems.length > 0"
+    class="batch-bar"
+    :aria-label="t('batch.title')"
+  >
     <NAlert v-if="summary" :type="alertType" :bordered="false" class="batch-alert">
       {{ summaryText }}
     </NAlert>
+    <NButton
+      v-if="queue.failedItems.length > 0"
+      secondary
+      :loading="retrying"
+      :disabled="queue.isProcessing"
+      @click="retryFailed"
+    >
+      {{ t('messages.retryFailed', { count: queue.failedItems.length }) }}
+    </NButton>
     <NButton
       secondary
       type="primary"

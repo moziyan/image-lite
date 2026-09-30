@@ -39,18 +39,30 @@ test.describe('i18n', () => {
 })
 
 test.describe('theme', () => {
-  test('toggles dark mode and applies the dark class', async ({ page }) => {
+  test('cycles through light → dark → system and applies the dark class', async ({ page }) => {
     await page.goto('/')
-    const isDarkBefore = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark'),
-    )
+    // Start from a known state: light mode.
+    await page.evaluate(() => localStorage.setItem('imagelite-theme', 'light'))
+    await page.reload()
 
-    // Theme toggle is the first button in the header (sun/moon icon).
+    const isDark = () =>
+      page.evaluate(() => document.documentElement.classList.contains('dark'))
+    const storedMode = () => page.evaluate(() => localStorage.getItem('imagelite-theme'))
+
+    expect(await isDark()).toBe(false)
+
+    // light → dark
     await page.locator('header button').first().click()
+    expect(await isDark()).toBe(true)
+    expect(await storedMode()).toBe('dark')
 
-    const isDarkAfter = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark'),
-    )
-    expect(isDarkAfter).toBe(!isDarkBefore)
+    // dark → system (dark class then follows the OS preference)
+    await page.locator('header button').first().click()
+    expect(await storedMode()).toBe('system')
+
+    // system → light
+    await page.locator('header button').first().click()
+    expect(await isDark()).toBe(false)
+    expect(await storedMode()).toBe('light')
   })
 })

@@ -70,7 +70,10 @@ const savedPercent = computed(() => {
         <span v-if="mode === 'preview' && previewResult" class="preview-meta">
           {{ formatBytes(previewResult.size) }}
           <template v-if="savedPercent !== null">
-            · {{ savedPercent >= 0 ? `−${savedPercent}%` : `+${Math.abs(savedPercent)}%` }}
+            ·
+            <span :class="savedPercent >= 0 ? 'delta-saved' : 'delta-grew'">
+              {{ savedPercent >= 0 ? `−${savedPercent}%` : `+${Math.abs(savedPercent)}%` }}
+            </span>
           </template>
         </span>
       </div>
@@ -133,6 +136,16 @@ const savedPercent = computed(() => {
   font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.delta-saved {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.delta-grew {
+  color: var(--danger);
+  font-weight: 600;
 }
 
 .viewport {

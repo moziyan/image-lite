@@ -40,7 +40,13 @@ async function processTask(
 
   const validation = validateImageFile(payload.file)
   if (!validation.ok) {
-    post({ type: 'error', taskId, error: validation.error.message })
+    post({
+      type: 'error',
+      taskId,
+      error: validation.error.message,
+      code: validation.error.code,
+      params: { name: payload.file.name, ...validation.error.params },
+    })
     return
   }
 
@@ -129,7 +135,13 @@ async function processTask(
       post({ type: 'cancelled', taskId })
     } else {
       const imageError = toImageError(error)
-      post({ type: 'error', taskId, error: imageError.message })
+      post({
+        type: 'error',
+        taskId,
+        error: imageError.message,
+        code: imageError.code,
+        params: { name: payload.file.name, ...imageError.params },
+      })
     }
   } finally {
     if (bitmap) {

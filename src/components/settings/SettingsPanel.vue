@@ -55,6 +55,14 @@ const targetSizeEnabled = computed({
   get: () => settings.targetSize.enabled,
   set: (value: boolean) => settings.setTargetSize({ enabled: value }),
 })
+
+/** Plain-language description of the current quality setting. */
+const qualityHint = computed(() => {
+  const q = qualityValue.value
+  if (q <= 30) return t('settings.qualitySmall')
+  if (q <= 70) return t('settings.qualityBalanced')
+  return t('settings.qualityHigh')
+})
 </script>
 
 <template>
@@ -97,6 +105,7 @@ const targetSizeEnabled = computed({
         <NFormItem :label="t('settings.outputFormat')">
           <NRadioGroup
             :value="settings.output.format"
+            :disabled="settings.availableFormats === null"
             @update:value="settings.setFormat($event as OutputFormat)"
           >
             <NRadioButton
@@ -108,7 +117,10 @@ const targetSizeEnabled = computed({
             />
           </NRadioGroup>
         </NFormItem>
-        <p v-if="!settings.isFormatAvailable('avif')" class="format-note">
+        <p v-if="settings.availableFormats === null" class="format-note">
+          {{ t('settings.detectingFormats') }}
+        </p>
+        <p v-else-if="!settings.isFormatAvailable('avif')" class="format-note">
           {{ t('settings.avifUnsupported') }}
         </p>
 
@@ -124,6 +136,7 @@ const targetSizeEnabled = computed({
             :marks="{ 1: '1', 50: '50', 100: '100' }"
             :aria-label="t('settings.qualityLabel')"
           />
+          <p class="quality-hint">{{ qualityHint }}</p>
         </NFormItem>
         <p v-else class="png-note">{{ t('settings.pngLossless') }}</p>
 
@@ -200,6 +213,9 @@ const targetSizeEnabled = computed({
             :percentage="Math.round(queue.aggregateProgress * 100)"
             :aria-label="t('settings.overallProgress')"
           />
+          <p class="batch-position" aria-live="polite">
+            {{ queue.batchCounts.settled }}/{{ queue.batchCounts.total }}
+          </p>
           <NButton block @click="queue.cancelAll()">{{ t('settings.cancel') }}</NButton>
         </div>
       </NForm>
@@ -244,6 +260,12 @@ const targetSizeEnabled = computed({
   color: var(--text-muted);
 }
 
+.quality-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
 .format-note {
   margin: -6px 0 10px;
   font-size: 12px;
@@ -255,5 +277,12 @@ const targetSizeEnabled = computed({
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.batch-position {
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-muted);
 }
 </style>

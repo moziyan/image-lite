@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NButton, NIcon, NSelect, NSpace } from 'naive-ui'
+import { NButton, NIcon, NPopconfirm, NSelect, NSpace } from 'naive-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -17,7 +17,13 @@ const { t, locale } = useI18n()
 const { isDark, setMode, mode } = useTheme()
 
 function toggleTheme(): void {
-  setMode(isDark.value ? 'light' : 'dark')
+  // Three-state cycle: light → dark → system → light.
+  const next: Record<typeof mode.value, 'light' | 'dark' | 'system'> = {
+    light: 'dark',
+    dark: 'system',
+    system: 'light',
+  }
+  setMode(next[mode.value])
 }
 
 const themeLabel = computed(() =>
@@ -27,6 +33,8 @@ const themeLabel = computed(() =>
       ? t('header.themeLight')
       : t('header.themeDark'),
 )
+
+const themeIcon = computed(() => (mode.value === 'system' ? '🖥' : isDark.value ? '☀' : '☾'))
 
 const localeOptions = SUPPORTED_LOCALES.map((l) => ({ label: l.label, value: l.value }))
 
@@ -55,7 +63,7 @@ const currentLocale = computed({
         @click="toggleTheme"
       >
         <template #icon>
-          <NIcon :aria-hidden="true">{{ isDark ? '☀' : '☾' }}</NIcon>
+          <NIcon :aria-hidden="true">{{ themeIcon }}</NIcon>
         </template>
       </NButton>
       <NSelect
@@ -67,9 +75,12 @@ const currentLocale = computed({
       />
       <template v-if="!queue.isEmpty">
         <AddImagesButton @files-selected="emit('filesSelected', $event)" />
-        <NButton tertiary size="small" @click="queue.clearAll()">{{
-          t('header.clearAll')
-        }}</NButton>
+        <NPopconfirm @positive-click="queue.clearAll()">
+          <template #trigger>
+            <NButton tertiary size="small">{{ t('header.clearAll') }}</NButton>
+          </template>
+          {{ t('header.clearAllConfirm') }}
+        </NPopconfirm>
       </template>
     </NSpace>
   </header>
