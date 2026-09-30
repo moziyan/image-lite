@@ -11,7 +11,7 @@ import { defineConfig } from 'vitest/config'
  * Only static shell assets are listed — never user image data. jszip is
  * excluded: it is lazy-loaded and cached at runtime only if ZIP is used.
  */
-function swPrecachePlugin(base: string) {
+function swPrecachePlugin() {
   return {
     name: 'sw-precache',
     apply: 'build' as const,
@@ -22,7 +22,7 @@ function swPrecachePlugin(base: string) {
         .filter(
           (name) => (name.endsWith('.js') || name.endsWith('.css')) && !name.includes('jszip'),
         )
-        .map((name) => `'${base}assets/${name}'`)
+        .map((name) => `'assets/${name}'`)
 
       const swPath = join(outDir, 'sw.js')
       const marker = '/* __PRECACHE_URLS__ */'
@@ -42,7 +42,7 @@ const base = process.env.VITE_BASE ?? '/'
 
 export default defineConfig({
   base,
-  plugins: [vue(), swPrecachePlugin(base)],
+  plugins: [vue(), swPrecachePlugin()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
